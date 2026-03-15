@@ -1,0 +1,41 @@
+{
+	"schemaVersion": 1,
+	"id": "bbsmcp",
+	"version": "${version}",
+	"name": "BBS MCP",
+	"description": "BBS MCP",
+	"authors": [
+		"theblocklab"
+	],
+	"contact": {
+		"homepage": "https://github.com/theblocklab/bbsmcp",
+		"sources": "https://github.com/theblocklab/bbsmcp"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/bbsmcp/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"theblocklab.bbsmcp.BBSMCP"
+		],
+		"client": [
+			"theblocklab.bbsmcp.BBSMCPClient"
+		],
+		"fabric-datagen": [
+		]
+	},
+	"mixins": [
+		"bbsmcp.mixins.json",
+		{
+			"config": "bbsmcp.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.20.1",
+		"java": ">=17",
+		"fabric-api": "*",
+		"bbs": "*"
+	}
+}

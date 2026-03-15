@@ -1,0 +1,109 @@
+{
+    "clips": [
+        {
+            "index": 0,
+            "type": "idle",
+            "tick": 3,
+            "layer": 2,
+            "duration": 12,
+            "position": {
+                "point": {
+                    "x": -20.00,
+                    "y": 73.00,
+                    "z": -1.55
+                },
+                "angle": {
+                    "yaw": 11.23,
+                    "pitch": 24.56,
+                    "fov": 70
+                }
+            }
+        },
+        {
+            "index": 1,
+            "type": "dolly",
+            "tick": 20,
+            "layer": 1,
+            "duration": 40,
+            "position": {
+                "point": {
+                    "x": -30.00,
+                    "y": 73.00,
+                    "z": -1.55
+                },
+                "angle": {
+                    "yaw": 11.23,
+                    "pitch": 24.56,
+                    "fov": 70
+                }
+            },
+            "interp": "circle_in",
+            "distance": 10,
+            "yaw": 14.56,
+            "pitch": 19.68
+        },
+        {
+            "index": 2,
+            "type": "keyframe",
+            "tick": 30,
+            "layer": 2,
+            "duration": 10,
+            "_comment": "A keyframe can modify one or more of the following properties: x, y, z, yaw, pitch, roll, fov, distance.",
+            "x": {
+                "keyframes": [
+                    {
+                        "tick": 3.0,
+                        "value": 24
+                    }
+                ],
+                "type": "double"
+            },
+            "fov": {
+                "keyframes": [
+                    {
+                        "tick": 6.0,
+                        "value": 11
+                    }
+                ],
+                "type": "double"
+            },
+            "additive": false
+        },
+        {
+            "index": 3,
+            "type": "path",
+            "tick": 50,
+            "layer": 2,
+            "duration": 12,
+            "_comment": "A pathClip can add one or more points",
+            "points": [
+                {
+                    "angle": {
+                        "roll": 12,
+                        "pitch": 24.45,
+                        "fov": 90.23,
+                        "yaw": 77.2
+                    },
+                    "point": {
+                        "x": 77,
+                        "y": 88,
+                        "z": 90.2
+                    }
+                },
+                {
+                    "angle": {
+                        "roll": 45,
+                        "pitch": 20.45,
+                        "fov": 82.23,
+                        "yaw": 67.2
+                    },
+                    "point": {
+                        "x": 60,
+                        "y": 88,
+                        "z": 90.2
+                    }
+                }
+            ]
+        }
+    ]
+}

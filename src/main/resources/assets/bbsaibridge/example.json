@@ -1,0 +1,46 @@
+{
+    "clips": [
+        {
+            "index": 0,
+            "type": "idle",
+            "tick": 3,
+            "layer": 2,
+            "duration": 12,
+            "position": {
+                "point": {
+                    "x": -20.00,
+                    "y": 73.00,
+                    "z": -1.55
+                },
+                "angle": {
+                    "yaw": 11.23,
+                    "pitch": 24.56,
+                    "fov": 70
+                }
+            }
+        },
+        {
+            "index": 1,
+            "type": "dolly",
+            "tick": 20,
+            "layer": 1,
+            "duration": 40,
+            "position": {
+                "point": {
+                    "x": -30.00,
+                    "y": 73.00,
+                    "z": -1.55
+                },
+                "angle": {
+                    "yaw": 11.23,
+                    "pitch": 24.56,
+                    "fov": 70
+                }
+            },
+            "interp": "circle_in",
+            "distance": 10,
+            "yaw": 14.56,
+            "pitch": 19.68
+        }
+    ]
+}
