@@ -33,7 +33,7 @@ public class CreateFilmTool extends MCPTool {
         if (FilmManagerAPI.INSTANCE.getFilmsList().contains(filmId)) {
             return MCPToolResponse.error("Film: '" + filmId + "' 已存在，创建失败。", "请提示用户并指引用户更换新 ID");
         }
-        FilmManagerAPI.INSTANCE.createFilm(server, filmId);
+        FilmManagerAPI.INSTANCE.createFilm(filmId);
         return MCPToolResponse.success("成功创建了 Film: '" + filmId + "'");
     }
 }

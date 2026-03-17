@@ -5,10 +5,13 @@ import theblocklab.bbsmcp.mcp.tools.core.*;
 /**
  * ClipManager 工具提供者
  */
-public class ClipManagerMcpTools extends MCPToolProvider {
-
-    public ClipManagerMcpTools() {
-        registerTool(new LoadClipsTool());
+public class ClipManagerMCPTools extends MCPToolProvider {
+    public ClipManagerMCPTools() {
+        registerTool(new LoadClipsFromFileTool());
+        registerTool(new AddClipTool());
+        registerTool(new RemoveClipTool());
+        registerTool(new GetClipsTool());
+        registerTool(new GetClipSchemaTool());
     }
 
 }

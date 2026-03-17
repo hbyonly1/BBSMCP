@@ -3,6 +3,8 @@ package theblocklab.bbsmcp.network;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.text.Text;
@@ -16,6 +18,7 @@ import mchorse.bbs_mod.ui.dashboard.UIDashboard;
 import mchorse.bbs_mod.ui.film.UIClips;
 import mchorse.bbs_mod.ui.film.UIClipsPanel;
 import mchorse.bbs_mod.ui.film.UIFilmPanel;
+import mchorse.bbs_mod.ui.framework.UIScreen;
 import mchorse.bbs_mod.utils.clips.Clip;
 
 @Environment(EnvType.CLIENT)
@@ -38,8 +41,22 @@ public class ClientNetwork {
                 (client, handler, buf, responseSender) -> {
                     handleClientPickClipPacket(client, buf);
                 });
+        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_OPEN_FILM_PANEL,
+                (client, handler, buf, responseSender) -> {
+                    handleClientOpenFilmPanelPacket(client, buf);
+                });
 
         // === AI building 相关逻辑 ===
+    }
+    // === utils ===
+    private static void sendOK(int requestId){
+        try {
+            PacketByteBuf buf = PacketByteBufs.create();
+            buf.writeInt(requestId);
+            ClientPlayNetworking.send(ServerNetwork.OK, buf);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // === BBS 相关逻辑 ===
@@ -59,6 +76,25 @@ public class ClientNetwork {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    private static void handleClientOpenFilmPanelPacket(MinecraftClient client, PacketByteBuf buf) {
+        int requestId = buf.readInt();
+        String filmId = buf.readString();
+        client.execute(() -> {
+            try {
+                UIDashboard dashboard = BBSModClient.getDashboard();
+                UIScreen.open(dashboard);
+                UIFilmPanel filmPanel = dashboard.getPanel(UIFilmPanel.class);
+                filmPanel.fill(BBSMod.getFilms().load(filmId));
+                dashboard.setPanel(filmPanel);
+                filmPanel.overlay.close();
+                client.player.sendMessage(Text
+                        .literal(String.format("§c[BBSMCP Client] 已接收 OpenFilmPanelPacket 数据包并打开影片面板: filmId: %s", filmId)));
+                sendOK(requestId);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     private static void handleServerFilmDataPacket(MinecraftClient client, PacketByteBuf buf) {

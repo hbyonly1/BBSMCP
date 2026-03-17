@@ -3,8 +3,9 @@ package theblocklab.bbsmcp;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import theblocklab.bbsmcp.mcp.MCPServerImpl;
-import theblocklab.bbsmcp.mcp.tools.clip.ClipManagerMcpTools;
+import theblocklab.bbsmcp.mcp.tools.clip.ClipManagerMCPTools;
 import theblocklab.bbsmcp.mcp.tools.film.FilmManagerMCPTools;
+import theblocklab.bbsmcp.mcp.tools.ui.UIMCPTools;
 
 public class BBSMCP implements ModInitializer {
 	public static final String MOD_ID = "bbsmcp";
@@ -13,10 +14,6 @@ public class BBSMCP implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		LOGGER.info("BBS MCP 初始化中...");
-
-		// 注册指令
-		// 指令已删除！
-		//CommandRegistrationCallback.EVENT.register(bbsmcpCommands::register);
 
 		// 注册服务端网络接收器
 		theblocklab.bbsmcp.network.ServerNetwork.setup();
@@ -29,11 +26,6 @@ public class BBSMCP implements ModInitializer {
 			LOGGER.warn("创建 clip 示例文件失败! ", e);
 		}
 
-		// 注册玩家加入事件，自动初始化 Default Film
-		// net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-		// 	theblocklab.bbsmcp.film.FilmManagerAPI.INSTANCE.initOnJoin(handler.getPlayer());
-		// });
-
 		// 注册 Server 启动和关闭事件，管理 MCP 服务器生命周期
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			// 将端口硬编码为 8000
@@ -41,7 +33,8 @@ public class BBSMCP implements ModInitializer {
 			
 			// 注册 MCP 工具
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new FilmManagerMCPTools());
-			MCPServerImpl.INSTANCE.getRouter().registerProvider(new ClipManagerMcpTools());
+			MCPServerImpl.INSTANCE.getRouter().registerProvider(new ClipManagerMCPTools());
+			MCPServerImpl.INSTANCE.getRouter().registerProvider(new UIMCPTools());
 			
 			LOGGER.info("BBS MCP Server Hook Registered");
 		});

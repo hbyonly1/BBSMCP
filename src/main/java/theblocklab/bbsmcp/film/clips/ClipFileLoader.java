@@ -33,7 +33,7 @@ public class ClipFileLoader {
      * @param filepath 文件路径（相对于 .minecraft/config/bbsmcp/clips/）
      * @param player   玩家
      */
-    public static void loadClipsFromFile(String filmId, String filepath, ServerPlayerEntity player) {
+    public static void loadClipsFromFile(ServerPlayerEntity player, String filmId, String filepath) {
         try {
             // 解析文件路径
             Path fullPath = resolveFilePath(filepath);
@@ -78,13 +78,6 @@ public class ClipFileLoader {
                 try {
                     MapType clipData = clipsList.getMap(i);
 
-                    // 提取必需字段
-                    if (!clipData.has("index") || !clipData.has("type")) {
-                        player.sendMessage(Text.literal(
-                                String.format("§c[BBSMCP ClipFileLoader] Clip #%d 缺少必需字段 'index' 或 'type'，跳过", i)));
-                        continue;
-                    }
-
                     int index = clipData.getInt("index");
                     String type = clipData.getString("type");
 
@@ -97,8 +90,8 @@ public class ClipFileLoader {
                     // 将 MapType 转换为 JSON 字符串
                     String clipJson = clipData.toString();
 
-                    // 调用 ClipFactory 添加镜头
-                    ClipFactory.addClipFromJSON(filmId, index, type, clipJson);
+                    // 调用 ClipManagerAPI 添加镜头（index 和 type 从 clipJson 内部读取）
+                    ClipManagerAPI.addClipFromJSON(player, filmId, clipJson);
                     successCount++;
 
                 } catch (Exception e) {
@@ -110,13 +103,14 @@ public class ClipFileLoader {
                 lastLoadedFilepath = filepath;
             }
 
-            // 同步 Film 到客户端
-            FilmManagerAPI.INSTANCE.syncFilmS2C(player, filmId);
+            FilmManagerAPI.pushFilmToUI(player, filmId, (MapType)film.toData());
+            // load 返回的仅仅是 film 的数据副本，要使改动生效，应该保存到硬盘
+            FilmManagerAPI.INSTANCE.saveFilm(filmId, (MapType)film.toData());
 
             // 选中最后一个添加的镜头
-            if (successCount > 0) {
-                ClipFactory.pickLastClip(filmId, player);
-            }
+            // if (successCount > 0) {
+            //     ClipManagerAPI.pickLastClip(filmId, player);
+            // }
 
             // 发送总结消息
             player.sendMessage(Text.literal(

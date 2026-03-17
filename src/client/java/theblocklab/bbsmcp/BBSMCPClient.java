@@ -10,6 +10,6 @@ public class BBSMCPClient implements ClientModInitializer {
 		// This entrypoint is suitable for setting up client-specific logic, such as
 		// rendering.
 		ClientNetwork.setup();
-		BBSMCP.LOGGER.info("BBS mcp 客户端初始化完成!");
+		BBSMCP.LOGGER.info("BBS MCP 客户端初始化完成!");
 	}
 }

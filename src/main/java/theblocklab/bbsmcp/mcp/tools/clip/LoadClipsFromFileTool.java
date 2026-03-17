@@ -8,9 +8,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.film.clips.ClipFileLoader;
 
-public class LoadClipsTool extends MCPTool {
+public class LoadClipsFromFileTool extends MCPTool {
 
-    public LoadClipsTool() {
+    public LoadClipsFromFileTool() {
         super("load_clips", "从服务器配置目录的 JSON 文件加载一组 Clips 镜头到目标 Film 中");
     }
 
@@ -40,7 +40,7 @@ public class LoadClipsTool extends MCPTool {
             return MCPToolResponse.error("执行失败：找不到玩家 '" + playerName + "'", "请确认玩家是否在线并拼写正确。");
         }
 
-        ClipFileLoader.loadClipsFromFile(filmId, filepath, player);
+        ClipFileLoader.loadClipsFromFile(player, filmId, filepath);
         return MCPToolResponse.success("成功触发 Clip 加载命令，目标文件: '" + filepath + "'", "请留意游戏内提示，如果 JSON 解析失败会有具体原因");
     }
 }

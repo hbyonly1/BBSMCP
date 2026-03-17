@@ -6,6 +6,7 @@ import net.minecraft.server.MinecraftServer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * MCP 工具提供者的基类。
@@ -38,13 +39,13 @@ public abstract class MCPToolProvider {
     }
     
     /**
-     * 执行具体的工具调用。
-     * 直接通过字典查找到对应的 McpTool 对象并调用其 execute。
+     * 执行具体的工具调用（异步）。
+     * 直接通过字典查找到对应的 McpTool 对象并调用其 executeAsync。
      */
-    public MCPToolResponse executeTool(String toolName, JsonObject arguments, MinecraftServer server) throws Exception {
+    public CompletableFuture<MCPToolResponse> executeToolAsync(String toolName, JsonObject arguments, MinecraftServer server) throws Exception {
         MCPTool tool = tools.get(toolName);
         if (tool != null) {
-            return tool.execute(arguments, server);
+            return tool.executeAsync(arguments, server);
         }
         return null; // 交给 router 中的下一个 Provider
     }

@@ -1,5 +1,7 @@
 package theblocklab.bbsmcp.mcp.tools.core;
 
+import java.util.concurrent.CompletableFuture;
+
 import com.google.gson.JsonObject;
 import net.minecraft.server.MinecraftServer;
 
@@ -42,10 +44,25 @@ public abstract class MCPTool {
     }
 
     /**
-     * 执行具体的工具业务逻辑
+     * 执行具体的工具业务逻辑（同步）
+     * 默认被 executeAsync 调用
      * @param arguments 调用工具时传入的参数
      * @param server Minecraft 服务端上下文
      * @return 统一格式的响应
      */
-    public abstract MCPToolResponse execute(JsonObject arguments, MinecraftServer server) throws Exception;
+    public MCPToolResponse execute(JsonObject arguments, MinecraftServer server) throws Exception {
+        throw new UnsupportedOperationException("This tool must implement either execute or executeAsync");
+    }
+
+    /**
+     * 执行具体的工具业务逻辑（异步）
+     * 如果工具涉及到网络发包等待，请重写此方法
+     * @param arguments 调用工具时传入的参数
+     * @param server Minecraft 服务端上下文
+     * @return 包含统一响应格式的 CompletableFuture
+     */
+    public CompletableFuture<MCPToolResponse> executeAsync(JsonObject arguments, MinecraftServer server) throws Exception {
+        // 默认实现将其包装在一个已完成的 CompletableFuture 中，保持向后兼容
+        return CompletableFuture.completedFuture(this.execute(arguments, server));
+    }
 }

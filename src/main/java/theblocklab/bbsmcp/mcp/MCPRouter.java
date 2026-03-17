@@ -8,6 +8,7 @@ import theblocklab.bbsmcp.mcp.tools.core.MCPToolProvider;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * MCP 路由器与工具注册中心
@@ -29,46 +30,44 @@ public class MCPRouter {
     }
 
     /**
-     * 处理 MCP JSON-RPC 请求
+     * 处理 MCP JSON-RPC 请求 (支持异步)
      *
      * @param requestBody 客户端发来的 JSON 字符串
-     * @return 响应的 JSON 字符串
+     * @return 挂起响应的 CompletableFuture
      */
-    public String handleRequest(String requestBody) {
+    public CompletableFuture<String> handleRequestAsync(String requestBody) {
         try {
             JsonObject request = JsonParser.parseString(requestBody).getAsJsonObject();
             
             // 简单的 JSON-RPC 2.0 校验
             if (!request.has("jsonrpc") || !request.get("jsonrpc").getAsString().equals("2.0")) {
-                return buildErrorResponse(null, -32600, "Invalid Request");
+                return CompletableFuture.completedFuture(buildErrorResponse(null, -32600, "Invalid Request"));
             }
             if (!request.has("method")) {
-                return buildErrorResponse(request.get("id"), -32600, "Invalid Request: missing method");
+                return CompletableFuture.completedFuture(buildErrorResponse(request.get("id"), -32600, "Invalid Request: missing method"));
             }
 
             String method = request.get("method").getAsString();
             Object id = null;
             if (request.has("id")) {
-                // ID 可能是数字也可能是字符串
                 id = request.get("id").getAsNumber() != null ? request.get("id").getAsNumber() : request.get("id").getAsString();
             }
 
             if ("initialize".equals(method)) {
-                return handleInitialize(id);
+                return CompletableFuture.completedFuture(handleInitialize(id));
             } else if ("notifications/initialized".equals(method)) {
-                // MCP 的 notification 没有 id，服务器只需要记录，不需要响应
-                return null;
+                return CompletableFuture.completedFuture(null);
             } else if ("tools/list".equals(method)) {
-                return handleToolsList(id);
+                return CompletableFuture.completedFuture(handleToolsList(id));
             } else if ("tools/call".equals(method)) {
-                return handleToolsCall(id, request.getAsJsonObject("params"));
+                return handleToolsCallAsync(id, request.getAsJsonObject("params"));
             } else {
-                return buildErrorResponse(id, -32601, "Method not found: " + method);
+                return CompletableFuture.completedFuture(buildErrorResponse(id, -32601, "Method not found: " + method));
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            return buildErrorResponse(null, -32700, "Parse error: " + e.getMessage());
+            return CompletableFuture.completedFuture(buildErrorResponse(null, -32700, "Parse error: " + e.getMessage()));
         }
     }
 
@@ -82,7 +81,6 @@ public class MCPRouter {
         result.add("serverInfo", serverInfo);
 
         JsonObject capabilities = new JsonObject();
-        // 声明支持 tools
         capabilities.add("tools", new JsonObject());
         result.add("capabilities", capabilities);
 
@@ -106,9 +104,9 @@ public class MCPRouter {
         return buildSuccessResponse(id, result);
     }
 
-    private String handleToolsCall(Object id, JsonObject params) {
+    private CompletableFuture<String> handleToolsCallAsync(Object id, JsonObject params) {
         if (params == null || !params.has("name")) {
-            return buildErrorResponse(id, -32602, "Invalid params: missing tool name");
+            return CompletableFuture.completedFuture(buildErrorResponse(id, -32602, "Invalid params: missing tool name"));
         }
 
         String toolName = params.get("name").getAsString();
@@ -116,42 +114,53 @@ public class MCPRouter {
 
         for (MCPToolProvider provider : providers) {
             try {
-                // 尝试执行。如果 Provider 不认识这个工具，会返回 null
-                theblocklab.bbsmcp.mcp.tools.core.MCPToolResponse response = provider.executeTool(toolName, arguments, server);
-                if (response != null) {
-                    // MCP 的 content 必须是一个数组 (即使只有一个文本对象)
-                    JsonArray contentArray = new JsonArray();
-                    JsonObject textObj = new JsonObject();
-                    textObj.addProperty("type", "text");
-                    textObj.addProperty("text", response.toJsonString());
-                    contentArray.add(textObj);
+                // 尝试执行，如果返回 null 说明 Provider 不认识这个工具
+                CompletableFuture<theblocklab.bbsmcp.mcp.tools.core.MCPToolResponse> future = provider.executeToolAsync(toolName, arguments, server);
+                if (future != null) {
+                    return future.thenApply(response -> {
+                        JsonArray contentArray = new JsonArray();
+                        JsonObject textObj = new JsonObject();
+                        textObj.addProperty("type", "text");
+                        textObj.addProperty("text", response.toJsonString());
+                        contentArray.add(textObj);
 
-                    JsonObject result = new JsonObject();
-                    result.add("content", contentArray);
-                    if (response.isError()) {
+                        JsonObject result = new JsonObject();
+                        result.add("content", contentArray);
+                        if (response.isError()) {
+                            result.addProperty("isError", true);
+                        }
+                        return buildSuccessResponse(id, result);
+                    }).exceptionally(e -> {
+                        e.printStackTrace();
+                        JsonArray contentArray = new JsonArray();
+                        JsonObject textObj = new JsonObject();
+                        textObj.addProperty("type", "text");
+                        textObj.addProperty("text", theblocklab.bbsmcp.mcp.tools.core.MCPToolResponse.error("执行内部异常: " + e.getMessage(), "请检查工具参数，或提醒服务器开发者查看后台报错堆栈。").toJsonString());
+                        contentArray.add(textObj);
+
+                        JsonObject result = new JsonObject();
+                        result.add("content", contentArray);
                         result.addProperty("isError", true);
-                    }
-                    return buildSuccessResponse(id, result);
+                        return buildSuccessResponse(id, result);
+                    });
                 }
             } catch (Exception e) {
-                // 执行过程中发生业务异常
                 e.printStackTrace();
                 JsonArray contentArray = new JsonArray();
                 JsonObject textObj = new JsonObject();
                 textObj.addProperty("type", "text");
-                // 返回格式一致的兜底报错信息
-                textObj.addProperty("text", theblocklab.bbsmcp.mcp.tools.core.MCPToolResponse.error("执行内部异常: " + e.getMessage(), "请检查工具参数，或提醒服务器开发者查看后台报错堆栈。").toJsonString());
+                textObj.addProperty("text", theblocklab.bbsmcp.mcp.tools.core.MCPToolResponse.error("解析工具调用异常: " + e.getMessage(), "请检查工具参数。").toJsonString());
                 contentArray.add(textObj);
 
                 JsonObject result = new JsonObject();
                 result.add("content", contentArray);
                 result.addProperty("isError", true);
-                return buildSuccessResponse(id, result); // 注意：工具执行失败在 MCP 中仍返回 result，但带有 isError 标志
+                return CompletableFuture.completedFuture(buildSuccessResponse(id, result));
             }
         }
 
         // 如果没有 Provider 处理
-        return buildErrorResponse(id, -32601, "Tool not found or unsupported: " + toolName);
+        return CompletableFuture.completedFuture(buildErrorResponse(id, -32601, "Tool not found or unsupported: " + toolName));
     }
 
     private String buildSuccessResponse(Object id, JsonObject result) {

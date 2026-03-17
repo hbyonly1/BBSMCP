@@ -2,8 +2,7 @@ package theblocklab.bbsmcp.mcp;
 
 import io.javalin.Javalin;
 import net.minecraft.server.MinecraftServer;
-
-
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 基于 Javalin 实现的 MCP HTTP 服务器
@@ -69,19 +68,24 @@ public class MCPServerImpl {
     }
 
     private void setupRoutes() {
-        // HTTP 端点：处理单个 JSON-RPC 2.0 消息
+        // HTTP 端点：处理单个 JSON-RPC 2.0 消息，支持挂起等待 (Async)
         app.post("/mcp", ctx -> {
             String body = ctx.body();
-            // MCP Router 处理请求，并返回基于 JSON-RPC 的响应
-            String responseStr = router.handleRequest(body);
             
-            // notification 请求（如 initialized）会返回 null，不需要回传
-            if (responseStr != null) {
-                ctx.contentType("application/json");
-                ctx.status(200).result(responseStr);
-            } else {
-                ctx.status(202); // Accepted
-            }
+            // 返回一个可能会挂起的 CompletableFuture
+            CompletableFuture<String> futureResponse = router.handleRequestAsync(body);
+            
+            // 将 Future 交给 Javalin，它会自动挂起并等待结果，且不阻塞当前服务器线程
+            ctx.future(() -> futureResponse.thenApply(responseStr -> {
+                if (responseStr != null) {
+                    ctx.contentType("application/json");
+                    ctx.status(200).result(responseStr);
+                } else {
+                    // notification 请求（如 initialized）本身没有响应
+                    ctx.status(202); // Accepted
+                }
+                return responseStr;
+            }));
         });
     }
 }

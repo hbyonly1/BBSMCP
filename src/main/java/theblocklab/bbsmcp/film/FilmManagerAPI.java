@@ -21,11 +21,13 @@ public class FilmManagerAPI {
     public static final FilmManagerAPI INSTANCE = new FilmManagerAPI();
 
     // 为某个玩家创建film
-    public void createFilm(MinecraftServer server, String filmId) {
-        // 这个应该是异步的
+    public void createFilm(String filmId) {
         this.films.save(filmId, (MapType)this.films.create(filmId).toData());
         // 为什么要sync?让客户端打开保存好的不行吗
         //syncFilmS2C(server.getPlayerManager().getPlayerList().get(0) , filmId);
+    }
+    public void saveFilm(String filmId, MapType filmData) {
+        this.films.save(filmId, filmData);
     }
 
     public Collection<String> getFilmsList() {
@@ -40,45 +42,31 @@ public class FilmManagerAPI {
         return film;
     }
 
-    public void syncFilmC2S(ServerPlayerEntity player, String filmId) {
-        theblocklab.bbsmcp.network.ServerNetwork.requestClientFilmDataPacket(player, filmId);
-    }
+    // public void syncFilmC2S(ServerPlayerEntity player, String filmId) {
+    //     theblocklab.bbsmcp.network.ServerNetwork.requestClientFilmDataPacket(player, filmId);
+    // }
 
-    // 若要同步到客户端，应先保存到磁盘，否则客户端 UI 读取不到实际文件，无法播放和操作
-    // sync 完成单一职能，已精简
-    public void syncFilmS2C(ServerPlayerEntity player, String filmId) {
+    // 若要同步到客户端，应先向客户端 UI 填充电影数据！再保存
+    // UI 会定期保存，所以第一更改 UI 的数据
+    // 已更改 sync 为更精确的操作
+    public static void pushFilmToUI(ServerPlayerEntity player, String filmId, MapType filmData) {
         // 客户端接收后实际上会向 UI 同步数据
-        theblocklab.bbsmcp.network.ServerNetwork.sendServerFilmDataPacket(player, filmId);
+        theblocklab.bbsmcp.network.ServerNetwork.sendServerFilmDataPacket(player, filmId, filmData);
     }
 
-    public void playFilm(ServerPlayerEntity player, String filmId, boolean withCamera) {
+    public static void playFilm(ServerPlayerEntity player, String filmId, boolean withCamera) {
         ServerNetwork.sendPlayFilm(player, filmId, withCamera);
     }
 
-    public void playFilm(ServerPlayerEntity player, ServerWorld world, String filmId, boolean withCamera) {
+    public static void playFilm(ServerPlayerEntity player, ServerWorld world, String filmId, boolean withCamera) {
         ServerNetwork.sendPlayFilm(player, world, filmId, withCamera);
     }
 
-    public void pauseFilm(ServerPlayerEntity player, String filmId) {
+    public static void pauseFilm(ServerPlayerEntity player, String filmId) {
         ServerNetwork.sendPauseFilm(player, filmId);
     }
 
-    public void stopFilm(ServerPlayerEntity player, String filmId) {
+    public static void stopFilm(ServerPlayerEntity player, String filmId) {
         ServerNetwork.sendStopFilm(player, filmId);
     }
-
-    /**
-     * 自动初始化 Film
-     * 在玩家加入服务器时调用
-     */
-    // public void initOnJoin(ServerPlayerEntity player) {
-    //     try {
-    //         if (isEmpty()) {
-    //             createFilm(DEFAULT_FILM_ID);
-    //         }
-    //         syncFilmS2C(player, DEFAULT_FILM_ID);
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //     }
-    // }
 }
