@@ -6,11 +6,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import theblocklab.bbsmcp.film.FilmManagerAPI;
-import theblocklab.bbsmcp.mcp.tools.core.MCPTool;
-import theblocklab.bbsmcp.mcp.tools.core.MCPToolResponse;
+import theblocklab.bbsmcp.exception.BBSMCPError;
+import theblocklab.bbsmcp.mcp.core.MCPTool;
+import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
 import theblocklab.bbsmcp.network.ServerNetwork;
-import theblocklab.bbsmcp.network.ServerRequestBridge;
 
 public class OpenFilmTool extends MCPTool {
 
@@ -28,33 +27,30 @@ public class OpenFilmTool extends MCPTool {
                       "type": "string",
                       "description": "影片ID"
                     }
-                  }
+                  },
+                  "required": ["filmId"]
                 }
                 """).getAsJsonObject();
     }
 
     @Override
     public CompletableFuture<MCPToolResponse> executeAsync(JsonObject arguments, MinecraftServer server) {
-        String filmId = arguments.get("filmId").getAsString();
-        
-        // 假设我们现在随便找一个玩家（如果在多玩家服务端，可能需要指定 targetPlayer）
-        // 这里作为演示，直接取第一个在线玩家
-        ServerPlayerEntity targetPlayer = server.getPlayerManager().getPlayerList().isEmpty() ? null : server.getPlayerManager().getPlayerList().get(0);
-        
+        String filmId = requireString(arguments, "filmId");
+
+        ServerPlayerEntity targetPlayer = getFirstOnlinePlayer(server);
         if (targetPlayer == null) {
-            return CompletableFuture.completedFuture(MCPToolResponse.error("执行失败", "服务器内没有玩家"));
-        }
-        if (!FilmManagerAPI.INSTANCE.getFilmsList().contains(filmId)) {
-            return CompletableFuture.completedFuture(MCPToolResponse.error("Film: '" + filmId + "' 不存在，打开失败。", "请检查 ID"));
+            return CompletableFuture.completedFuture(
+                    MCPToolResponse.error(
+                            BBSMCPError.PLAYER_NOT_ONLINE.format(),
+                            BBSMCPError.PLAYER_NOT_ONLINE.getHint()));
         }
 
-        // 调用刚刚封装的 ServerRequestBridge
-        return ServerRequestBridge.request(targetPlayer, ServerNetwork.CLIENT_OPEN_FILM_PANEL, buf -> {
-            buf.writeString(filmId);
-        }).thenApply(success -> {
-            return MCPToolResponse.success("成功打开了 " + filmId + " 的影片面板并得到客户端确认！");
-        }).exceptionally(e -> {
-            return MCPToolResponse.error("打开面板异常 / 超时", e.getMessage());
-        });
+        // 由 ServerNetwork 统一封装网络发包细节，Tool 层只关心语义
+        return ServerNetwork.requestClientOpenFilmPanelPacket(targetPlayer, filmId)
+                .thenApply(success -> {
+                    return MCPToolResponse.success("成功打开了 " + filmId + " 的影片面板并得到客户端确认！");
+                }).exceptionally(e -> {
+                    return MCPToolResponse.error("打开面板异常 / 超时", e.getMessage());
+                });
     }
 }

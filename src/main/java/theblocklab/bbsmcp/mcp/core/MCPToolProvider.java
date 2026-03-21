@@ -1,4 +1,4 @@
-package theblocklab.bbsmcp.mcp.tools.core;
+package theblocklab.bbsmcp.mcp.core;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -28,6 +28,7 @@ public abstract class MCPToolProvider {
 
     /**
      * 向 MCP 注册当前工具提供的可用工具列表
+     * 
      * @return 包含该 Provider 所有可用工具 Schema 的 JSON 数组
      */
     public JsonArray getToolDefinitions() {
@@ -37,12 +38,13 @@ public abstract class MCPToolProvider {
         }
         return array;
     }
-    
+
     /**
      * 执行具体的工具调用（异步）。
      * 直接通过字典查找到对应的 McpTool 对象并调用其 executeAsync。
      */
-    public CompletableFuture<MCPToolResponse> executeToolAsync(String toolName, JsonObject arguments, MinecraftServer server) throws Exception {
+    public CompletableFuture<MCPToolResponse> executeToolAsync(String toolName, JsonObject arguments,
+            MinecraftServer server) throws Exception {
         MCPTool tool = tools.get(toolName);
         if (tool != null) {
             return tool.executeAsync(arguments, server);

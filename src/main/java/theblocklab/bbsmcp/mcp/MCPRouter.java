@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.server.MinecraftServer;
-import theblocklab.bbsmcp.mcp.tools.core.MCPToolProvider;
+import theblocklab.bbsmcp.mcp.core.MCPToolProvider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,19 +38,21 @@ public class MCPRouter {
     public CompletableFuture<String> handleRequestAsync(String requestBody) {
         try {
             JsonObject request = JsonParser.parseString(requestBody).getAsJsonObject();
-            
+
             // 简单的 JSON-RPC 2.0 校验
             if (!request.has("jsonrpc") || !request.get("jsonrpc").getAsString().equals("2.0")) {
                 return CompletableFuture.completedFuture(buildErrorResponse(null, -32600, "Invalid Request"));
             }
             if (!request.has("method")) {
-                return CompletableFuture.completedFuture(buildErrorResponse(request.get("id"), -32600, "Invalid Request: missing method"));
+                return CompletableFuture.completedFuture(
+                        buildErrorResponse(request.get("id"), -32600, "Invalid Request: missing method"));
             }
 
             String method = request.get("method").getAsString();
             Object id = null;
             if (request.has("id")) {
-                id = request.get("id").getAsNumber() != null ? request.get("id").getAsNumber() : request.get("id").getAsString();
+                id = request.get("id").getAsNumber() != null ? request.get("id").getAsNumber()
+                        : request.get("id").getAsString();
             }
 
             if ("initialize".equals(method)) {
@@ -67,7 +69,8 @@ public class MCPRouter {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return CompletableFuture.completedFuture(buildErrorResponse(null, -32700, "Parse error: " + e.getMessage()));
+            return CompletableFuture
+                    .completedFuture(buildErrorResponse(null, -32700, "Parse error: " + e.getMessage()));
         }
     }
 
@@ -106,7 +109,8 @@ public class MCPRouter {
 
     private CompletableFuture<String> handleToolsCallAsync(Object id, JsonObject params) {
         if (params == null || !params.has("name")) {
-            return CompletableFuture.completedFuture(buildErrorResponse(id, -32602, "Invalid params: missing tool name"));
+            return CompletableFuture
+                    .completedFuture(buildErrorResponse(id, -32602, "Invalid params: missing tool name"));
         }
 
         String toolName = params.get("name").getAsString();
@@ -115,7 +119,8 @@ public class MCPRouter {
         for (MCPToolProvider provider : providers) {
             try {
                 // 尝试执行，如果返回 null 说明 Provider 不认识这个工具
-                CompletableFuture<theblocklab.bbsmcp.mcp.tools.core.MCPToolResponse> future = provider.executeToolAsync(toolName, arguments, server);
+                CompletableFuture<theblocklab.bbsmcp.mcp.core.MCPToolResponse> future = provider
+                        .executeToolAsync(toolName, arguments, server);
                 if (future != null) {
                     return future.thenApply(response -> {
                         JsonArray contentArray = new JsonArray();
@@ -135,7 +140,8 @@ public class MCPRouter {
                         JsonArray contentArray = new JsonArray();
                         JsonObject textObj = new JsonObject();
                         textObj.addProperty("type", "text");
-                        textObj.addProperty("text", theblocklab.bbsmcp.mcp.tools.core.MCPToolResponse.error("执行内部异常: " + e.getMessage(), "请检查工具参数，或提醒服务器开发者查看后台报错堆栈。").toJsonString());
+                        textObj.addProperty("text", theblocklab.bbsmcp.mcp.core.MCPToolResponse
+                                .error("执行内部异常: " + e.getMessage(), "请检查工具参数，或提醒服务器开发者查看后台报错堆栈。").toJsonString());
                         contentArray.add(textObj);
 
                         JsonObject result = new JsonObject();
@@ -149,7 +155,8 @@ public class MCPRouter {
                 JsonArray contentArray = new JsonArray();
                 JsonObject textObj = new JsonObject();
                 textObj.addProperty("type", "text");
-                textObj.addProperty("text", theblocklab.bbsmcp.mcp.tools.core.MCPToolResponse.error("解析工具调用异常: " + e.getMessage(), "请检查工具参数。").toJsonString());
+                textObj.addProperty("text", theblocklab.bbsmcp.mcp.core.MCPToolResponse
+                        .error("解析工具调用异常: " + e.getMessage(), "请检查工具参数。").toJsonString());
                 contentArray.add(textObj);
 
                 JsonObject result = new JsonObject();
@@ -160,13 +167,14 @@ public class MCPRouter {
         }
 
         // 如果没有 Provider 处理
-        return CompletableFuture.completedFuture(buildErrorResponse(id, -32601, "Tool not found or unsupported: " + toolName));
+        return CompletableFuture
+                .completedFuture(buildErrorResponse(id, -32601, "Tool not found or unsupported: " + toolName));
     }
 
     private String buildSuccessResponse(Object id, JsonObject result) {
         JsonObject response = new JsonObject();
         response.addProperty("jsonrpc", "2.0");
-        
+
         if (id instanceof Number) {
             response.addProperty("id", (Number) id);
         } else if (id instanceof String) {
@@ -174,7 +182,7 @@ public class MCPRouter {
         } else {
             response.add("id", null);
         }
-        
+
         response.add("result", result);
         return response.toString();
     }
@@ -182,7 +190,7 @@ public class MCPRouter {
     private String buildErrorResponse(Object id, int code, String message) {
         JsonObject response = new JsonObject();
         response.addProperty("jsonrpc", "2.0");
-        
+
         if (id instanceof Number) {
             response.addProperty("id", (Number) id);
         } else if (id instanceof String) {
@@ -195,7 +203,7 @@ public class MCPRouter {
         errorInfo.addProperty("code", code);
         errorInfo.addProperty("message", message);
         response.add("error", errorInfo);
-        
+
         return response.toString();
     }
 }

@@ -7,9 +7,10 @@ import mchorse.bbs_mod.data.types.MapType;
 import mchorse.bbs_mod.film.Film;
 import mchorse.bbs_mod.film.FilmManager;
 import mchorse.bbs_mod.network.ServerNetwork;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import theblocklab.bbsmcp.exception.BBSMCPError;
+import theblocklab.bbsmcp.exception.BBSMCPException;
 
 /**
  * Film 管理器
@@ -22,10 +23,18 @@ public class FilmManagerAPI {
 
     // 为某个玩家创建film
     public void createFilm(String filmId) {
-        this.films.save(filmId, (MapType)this.films.create(filmId).toData());
+        this.films.save(filmId, (MapType) this.films.create(filmId).toData());
         // 为什么要sync?让客户端打开保存好的不行吗
-        //syncFilmS2C(server.getPlayerManager().getPlayerList().get(0) , filmId);
+        // syncFilmS2C(server.getPlayerManager().getPlayerList().get(0) , filmId);
     }
+
+    public void deleteFilm(String filmId) {
+        boolean success = this.films.delete(filmId);
+        if (!success) {
+            throw new BBSMCPException(BBSMCPError.FILM_NOT_FOUND, filmId);
+        }
+    }
+
     public void saveFilm(String filmId, MapType filmData) {
         this.films.save(filmId, filmData);
     }
@@ -37,13 +46,14 @@ public class FilmManagerAPI {
     public Film getFilm(String filmId) {
         Film film = this.films.load(filmId);
         if (film == null) {
-            throw new IllegalArgumentException("Film not found: " + filmId);
+            throw new BBSMCPException(BBSMCPError.FILM_NOT_FOUND, filmId);
         }
         return film;
     }
 
     // public void syncFilmC2S(ServerPlayerEntity player, String filmId) {
-    //     theblocklab.bbsmcp.network.ServerNetwork.requestClientFilmDataPacket(player, filmId);
+    // theblocklab.bbsmcp.network.ServerNetwork.requestClientFilmDataPacket(player,
+    // filmId);
     // }
 
     // 若要同步到客户端，应先向客户端 UI 填充电影数据！再保存

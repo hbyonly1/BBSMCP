@@ -4,7 +4,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.text.Text;
@@ -48,8 +47,9 @@ public class ClientNetwork {
 
         // === AI building 相关逻辑 ===
     }
+
     // === utils ===
-    private static void sendOK(int requestId){
+    private static void sendOK(int requestId) {
         try {
             PacketByteBuf buf = PacketByteBufs.create();
             buf.writeInt(requestId);
@@ -77,6 +77,7 @@ public class ClientNetwork {
             e.printStackTrace();
         }
     }
+
     private static void handleClientOpenFilmPanelPacket(MinecraftClient client, PacketByteBuf buf) {
         int requestId = buf.readInt();
         String filmId = buf.readString();
@@ -89,7 +90,8 @@ public class ClientNetwork {
                 dashboard.setPanel(filmPanel);
                 filmPanel.overlay.close();
                 client.player.sendMessage(Text
-                        .literal(String.format("§c[BBSMCP Client] 已接收 OpenFilmPanelPacket 数据包并打开影片面板: filmId: %s", filmId)));
+                        .literal(String.format("§c[BBSMCP Client] 已接收 OpenFilmPanelPacket 数据包并打开影片面板: filmId: %s",
+                                filmId)));
                 sendOK(requestId);
             } catch (Exception e) {
                 e.printStackTrace();

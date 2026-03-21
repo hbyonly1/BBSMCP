@@ -1,11 +1,10 @@
 package theblocklab.bbsmcp.mcp.tools.film;
 
-import theblocklab.bbsmcp.mcp.tools.core.*;
-
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.server.MinecraftServer;
 import theblocklab.bbsmcp.film.FilmManagerAPI;
+import theblocklab.bbsmcp.mcp.core.*;
 
 public class CreateFilmTool extends MCPTool {
 
@@ -29,7 +28,7 @@ public class CreateFilmTool extends MCPTool {
     public MCPToolResponse execute(JsonObject arguments, MinecraftServer server) {
         String filmId = (arguments.has("filmId") && !arguments.get("filmId").isJsonNull())
                 ? arguments.get("filmId").getAsString()
-                : FilmManagerAPI.DEFAULT_FILM_ID; 
+                : FilmManagerAPI.DEFAULT_FILM_ID;
         if (FilmManagerAPI.INSTANCE.getFilmsList().contains(filmId)) {
             return MCPToolResponse.error("Film: '" + filmId + "' 已存在，创建失败。", "请提示用户并指引用户更换新 ID");
         }

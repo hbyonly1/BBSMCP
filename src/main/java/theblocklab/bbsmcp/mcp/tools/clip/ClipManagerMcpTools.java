@@ -1,6 +1,6 @@
 package theblocklab.bbsmcp.mcp.tools.clip;
 
-import theblocklab.bbsmcp.mcp.tools.core.*;
+import theblocklab.bbsmcp.mcp.core.*;
 
 /**
  * ClipManager 工具提供者

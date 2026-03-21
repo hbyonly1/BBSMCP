@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import theblocklab.bbsmcp.mcp.MCPServerImpl;
 import theblocklab.bbsmcp.mcp.tools.clip.ClipManagerMCPTools;
 import theblocklab.bbsmcp.mcp.tools.film.FilmManagerMCPTools;
+import theblocklab.bbsmcp.mcp.tools.test.TestMCPTools;
 import theblocklab.bbsmcp.mcp.tools.ui.UIMCPTools;
 
 public class BBSMCP implements ModInitializer {
@@ -30,12 +31,13 @@ public class BBSMCP implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			// 将端口硬编码为 8000
 			MCPServerImpl.INSTANCE.start(server, 8000);
-			
+
 			// 注册 MCP 工具
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new FilmManagerMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new ClipManagerMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new UIMCPTools());
-			
+			MCPServerImpl.INSTANCE.getRouter().registerProvider(new TestMCPTools());
+
 			LOGGER.info("BBS MCP Server Hook Registered");
 		});
 

@@ -1,12 +1,11 @@
 package theblocklab.bbsmcp.mcp.tools.clip;
 
-import theblocklab.bbsmcp.mcp.tools.core.*;
-
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.film.clips.ClipFileLoader;
+import theblocklab.bbsmcp.mcp.core.*;
 
 public class LoadClipsFromFileTool extends MCPTool {
 

@@ -4,15 +4,12 @@ import theblocklab.bbsmcp.film.FilmManagerAPI;
 
 import java.util.concurrent.CompletableFuture;
 
-import mchorse.bbs_mod.BBSMod;
 import mchorse.bbs_mod.data.DataStorageUtils;
 import mchorse.bbs_mod.data.types.MapType;
-import mchorse.bbs_mod.film.Film;
 import mchorse.bbs_mod.network.ServerPacketCrusher;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -57,9 +54,10 @@ public class ServerNetwork {
     // === BBS 相关逻辑 ===
 
     // 请求客户端打开指定的 filmPanel 的逻辑
-    public static CompletableFuture<Boolean> requestClientOpenFilmPanelPacket(ServerPlayerEntity player, String filmId) {
+    public static CompletableFuture<Boolean> requestClientOpenFilmPanelPacket(ServerPlayerEntity player,
+            String filmId) {
         player.sendMessage(Text.literal(String.format("§c[BBSMCP Server] 正在通过 Bridge 请求打开面板: filmId: %s", filmId)));
-        
+
         return ServerRequestBridge.request(player, CLIENT_OPEN_FILM_PANEL, buf -> {
             buf.writeString(filmId);
         });
@@ -88,12 +86,6 @@ public class ServerNetwork {
             try {
                 String filmId = packetByteBuf.readString();
                 MapType filmData = (MapType) DataStorageUtils.readFromBytes(bytes);
-
-                // if (FilmManagerAPI.INSTANCE.isEmpty()) {
-                //     FilmManagerAPI.INSTANCE.createFilm(filmId);
-                //     player.sendMessage(Text
-                //             .literal(String.format("§c[BBSMCP Server] 没有可同步的 Film, 正在创建 filmId: %s", filmId)));
-                // }
 
                 FilmManagerAPI.INSTANCE.getFilm(filmId).fromData(filmData);
                 player.sendMessage(Text

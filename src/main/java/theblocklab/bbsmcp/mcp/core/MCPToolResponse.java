@@ -1,4 +1,4 @@
-package theblocklab.bbsmcp.mcp.tools.core;
+package theblocklab.bbsmcp.mcp.core;
 
 import com.google.gson.JsonObject;
 
@@ -58,7 +58,7 @@ public class MCPToolResponse {
     public String toJsonString() {
         return toJson().toString();
     }
-    
+
     public boolean isError() {
         return "error".equals(this.status);
     }

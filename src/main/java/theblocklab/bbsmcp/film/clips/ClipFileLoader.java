@@ -91,7 +91,7 @@ public class ClipFileLoader {
                     String clipJson = clipData.toString();
 
                     // 调用 ClipManagerAPI 添加镜头（index 和 type 从 clipJson 内部读取）
-                    ClipManagerAPI.addClipFromJSON(player, filmId, clipJson);
+                    ClipManagerAPI.addClip(player, filmId, clipJson);
                     successCount++;
 
                 } catch (Exception e) {

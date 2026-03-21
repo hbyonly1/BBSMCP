@@ -1,5 +1,7 @@
 package theblocklab.bbsmcp.film.clips;
 
+import theblocklab.bbsmcp.exception.BBSMCPError;
+import theblocklab.bbsmcp.exception.BBSMCPException;
 import theblocklab.bbsmcp.film.FilmManagerAPI;
 import theblocklab.bbsmcp.network.ServerNetwork;
 import mchorse.bbs_mod.data.DataParser;
@@ -12,183 +14,139 @@ import mchorse.bbs_mod.utils.clips.Clip;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 public class ClipManagerAPI {
-    // private static Clip lastClip;
 
-    // public static final ClipManagerAPI INSTANCE = new ClipManagerAPI();
+    /**
+     * 从 JSON 添加或覆盖 Clip（index 和 type 从 JSON 字段中读取）。
+     * 所有业务规则校验均在此方法内完成，失败时抛出 BbsException。
+     */
+    public static void addClip(ServerPlayerEntity player, String filmId, String json) {
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
 
-    // 从 JSON 添加 clip（index 和 type 从 JSON 字段中读取）
-    public static void addClipFromJSON(ServerPlayerEntity player, String filmId, String json) {
-        try {
-            Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
-            if (film == null) {
-                throw new IllegalArgumentException("Film ID 无效: " + filmId);
-            }
-
-            // 解析 JSON 为 MapType
-            BaseType data = DataParser.parse(json);
-            if (data == null || !data.isMap()) {
-                throw new IllegalArgumentException("JSON 必须是对象格式: {...}");
-            }
-            MapType mapData = data.asMap();
-
-            // 从 JSON 中读取 type 字段
-            String type = mapData.getString("type");
-            if (type == null || type.isEmpty()) {
-                throw new IllegalArgumentException("JSON 中缺少 'type' 字段");
-            }
-
-            // 从 JSON 中读取 index 字段（必填）
-            if (!mapData.has("index")) {
-                throw new IllegalArgumentException("JSON 中缺少必填字段 'index'");
-            }
-            int index = mapData.getInt("index");
-
-            // 创建 Link 和 Clip 实例
-            Link typeLink = Link.bbs(type);
-            Clip clip = (Clip) film.camera.getFactory().create(typeLink);
-            if (clip == null) {
-                throw new IllegalArgumentException("未知的 Clip 类型: " + type);
-            }
-
-            clip.fromData(mapData);
-
-            if (index >= 0 && index < film.camera.get().size()) {
-                // 已存在则覆盖数据（暂不支持更改 clip 类型）
-                film.camera.get(index).copy(clip);
-            } else if (index == film.camera.get().size()) {
-                // 不存在则添加
-                film.camera.addClip(clip);
-            } else {
-                throw new IllegalArgumentException("Clip index 无效: " + index);
-            };
-
-            FilmManagerAPI.pushFilmToUI(player, filmId, (MapType)film.toData());
-            // load 返回的仅仅是 film 的数据副本，要使改动生效，应该保存到硬盘
-            FilmManagerAPI.INSTANCE.saveFilm(filmId, (MapType)film.toData());
-            System.out.println(film.toData().toString());
-
-            // 选中刚刚添加/更新的 Clip
-            pickClip(player, filmId, clip);
-
-            // 保存到内存中
-            //lastClip = clip;
-        } catch (Exception e) {
-            e.printStackTrace();
+        // 解析 JSON 为 MapType
+        BaseType data = DataParser.parse(json);
+        if (data == null || !data.isMap()) {
+            throw new BBSMCPException(BBSMCPError.CLIP_INVALID_JSON);
         }
+        MapType mapData = data.asMap();
+
+        // 校验 type 字段
+        String type = mapData.getString("type");
+        if (type == null || type.isEmpty()) {
+            throw new BBSMCPException(BBSMCPError.CLIP_MISSING_FIELD, "type");
+        }
+
+        // 校验 index 字段
+        if (!mapData.has("index")) {
+            throw new BBSMCPException(BBSMCPError.CLIP_MISSING_FIELD, "index");
+        }
+        int index = mapData.getInt("index");
+
+        // 校验 index 范围
+        int currentSize = film.camera.get().size();
+        if (index < 0 || index > currentSize) {
+            throw new BBSMCPException(BBSMCPError.CLIP_INDEX_INVALID, index, filmId, currentSize);
+        }
+
+        // 创建 Clip 实例
+        Link typeLink = Link.bbs(type);
+        Clip clip = (Clip) film.camera.getFactory().create(typeLink);
+        if (clip == null) {
+            throw new BBSMCPException(BBSMCPError.CLIP_UNKNOWN_TYPE, type);
+        }
+
+        clip.fromData(mapData);
+
+        if (index < currentSize) {
+            // 已存在则覆盖数据
+            film.camera.get(index).copy(clip);
+        } else {
+            // 追加到末尾
+            film.camera.addClip(clip);
+        }
+
+        FilmManagerAPI.pushFilmToUI(player, filmId, (MapType) film.toData());
+        FilmManagerAPI.INSTANCE.saveFilm(filmId, (MapType) film.toData());
+
+        // 选中刚刚添加/更新的 Clip
+        pickClip(player, filmId, clip);
     }
 
+    /**
+     * 删除指定索引的 Clip 并同步到客户端。
+     */
     public static void removeClip(ServerPlayerEntity player, String filmId, int index) {
-        try {
-            Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
-            if (film == null) {
-                throw new IllegalArgumentException("Film ID 无效: " + filmId);
-            }
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
 
-            Clip clip = film.camera.get(index);
-            if (clip == null) {
-                throw new IllegalArgumentException("Clip index 无效: " + index);
-            }
-
-            // 删除 Clip
-            film.camera.remove(clip);
-
-            FilmManagerAPI.pushFilmToUI(player, filmId, (MapType)film.toData());
-            // load 返回的仅仅是 film 的数据副本，要使改动生效，应该保存到硬盘
-            FilmManagerAPI.INSTANCE.saveFilm(filmId, (MapType)film.toData());
-        } catch (Exception e) {
-            e.printStackTrace();
+        Clip clip = film.camera.get(index);
+        if (clip == null) {
+            throw new BBSMCPException(BBSMCPError.CLIP_NOT_FOUND, index);
         }
+
+        film.camera.remove(clip);
+
+        FilmManagerAPI.pushFilmToUI(player, filmId, (MapType) film.toData());
+        FilmManagerAPI.INSTANCE.saveFilm(filmId, (MapType) film.toData());
     }
 
+    /**
+     * 获取 Film 下的所有 Clip（JSON 字符串）。
+     */
     public static String getClips(String filmId) {
-        try {
-            Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
-            if (film == null) {
-                throw new IllegalArgumentException("Film ID 无效: " + filmId);
-            }
-            ListType list = new ListType();
-            for (Clip clip : film.camera.get()){
-                list.add(clip.toData());
-            }
-            return list.toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "";
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
+
+        ListType list = new ListType();
+        for (Clip clip : film.camera.get()) {
+            list.add(clip.toData());
         }
+        return list.toString();
     }
 
+    /**
+     * 按索引查询单个 Clip。
+     */
     public static String getClipsByIndex(String filmId, int index) {
-        try {
-            Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
-            if (film == null) {
-                throw new IllegalArgumentException("Film ID 无效: " + filmId);
-            }
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
 
-            Clip clip = film.camera.get(index);
-            return clip == null ? "" : clip.toData().toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "";
+        Clip clip = film.camera.get(index);
+        if (clip == null) {
+            throw new BBSMCPException(BBSMCPError.CLIP_NOT_FOUND, index);
         }
+        return clip.toData().toString();
     }
 
+    /**
+     * 查询覆盖指定 tick 的所有 Clip。
+     */
     public static String getClipsByTick(String filmId, int tick) {
-        try {
-            Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
-            if (film == null) {
-                throw new IllegalArgumentException("Film ID 无效: " + filmId);
-            }
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
 
-            ListType list = new ListType();
-            for (Clip clip : film.camera.getClips(tick)){
-                list.add(clip.toData());
-            }
-            return list.toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "";
+        ListType list = new ListType();
+        for (Clip clip : film.camera.getClips(tick)) {
+            list.add(clip.toData());
         }
+        return list.toString();
     }
 
+    /**
+     * 查询指定 tick + layer 上的单个 Clip。
+     */
     public static String getClipByTickAndLayer(String filmId, int tick, int layer) {
-        try {
-            Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
-            if (film == null) {
-                throw new IllegalArgumentException("Film ID 无效: " + filmId);
-            }
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
 
-            Clip clip = film.camera.getClipAt(tick, layer);
-            return clip == null ? "" : clip.toData().toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "";
+        Clip clip = film.camera.getClipAt(tick, layer);
+        if (clip == null) {
+            throw new BBSMCPException(BBSMCPError.CLIP_NOT_FOUND, tick);
         }
+        return clip.toData().toString();
     }
 
-    // 选中片段
+    /**
+     * 选中指定 Clip，发送网络包通知客户端。
+     */
     public static <T extends Clip> T pickClip(ServerPlayerEntity player, String filmId, T clip) {
         Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
-        if (film == null) {
-            throw new IllegalArgumentException("Film ID 无效: " + filmId);
-        }
-
         int clipIndex = film.camera.getIndex(clip);
         ServerNetwork.sendPickClipPacket(player, filmId, clipIndex);
         return clip;
     }
-
-    // 选中最后添加的片段
-    // public void pickLastClip(ServerPlayerEntity player, String filmId) {
-    //     Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
-    //     if (film == null) {
-    //         throw new IllegalArgumentException("Film ID 无效: " + filmId);
-    //     }
-
-    //     int clipIndex = film.camera.getIndex(lastClip);
-    //     if (clipIndex == -1) {
-    //         throw new IllegalArgumentException("Film id: " + filmId + " Clip 无效!");
-    //     }
-
-    //     ServerNetwork.sendPickClipPacket(player, filmId, clipIndex);
-    // }
 }
