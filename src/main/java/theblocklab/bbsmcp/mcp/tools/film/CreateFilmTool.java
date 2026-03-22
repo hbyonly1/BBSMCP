@@ -29,7 +29,7 @@ public class CreateFilmTool extends MCPTool {
         String filmId = (arguments.has("filmId") && !arguments.get("filmId").isJsonNull())
                 ? arguments.get("filmId").getAsString()
                 : FilmManagerAPI.DEFAULT_FILM_ID;
-        if (FilmManagerAPI.INSTANCE.getFilmsList().contains(filmId)) {
+        if (FilmManagerAPI.INSTANCE.hasFilm(filmId)) {
             return MCPToolResponse.error("Film: '" + filmId + "' 已存在，创建失败。", "请提示用户并指引用户更换新 ID");
         }
         FilmManagerAPI.INSTANCE.createFilm(filmId);

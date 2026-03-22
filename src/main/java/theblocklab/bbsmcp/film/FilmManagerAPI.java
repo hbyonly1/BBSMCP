@@ -43,6 +43,10 @@ public class FilmManagerAPI {
         return this.films.getKeys();
     }
 
+    public boolean hasFilm(String filmId) {
+        return this.films.getKeys().contains(filmId);
+    }
+
     public Film getFilm(String filmId) {
         Film film = this.films.load(filmId);
         if (film == null) {

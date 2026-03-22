@@ -24,6 +24,8 @@ public class ServerNetwork {
     public static final Identifier CLIENT_PICK_CLIP = new Identifier("bbsmcp", "client_pick_clip");
 
     public static final Identifier CLIENT_OPEN_FILM_PANEL = new Identifier("bbsmcp", "client_open_film_panel");
+    public static final Identifier CLIENT_TOGGLE_PLAYBACK = new Identifier("bbsmcp", "client_toggle_playback");
+    public static final Identifier CLIENT_CLOSE_UI = new Identifier("bbsmcp", "client_close_ui");
 
     // === AI building 相关 Identifier ===
     // 客户端到服务端: 生成建筑请求
@@ -60,6 +62,14 @@ public class ServerNetwork {
 
         return ServerRequestBridge.request(player, CLIENT_OPEN_FILM_PANEL, buf -> {
             buf.writeString(filmId);
+        });
+    }
+
+    // 请求客户端关闭当前的任何 UI 面板 (相当于按 ESC)
+    public static CompletableFuture<Boolean> requestClientCloseUIPacket(ServerPlayerEntity player) {
+        player.sendMessage(Text.literal("§c[BBSMCP Server] 正在通过 Bridge 请求关闭客户端 UI"));
+
+        return ServerRequestBridge.request(player, CLIENT_CLOSE_UI, buf -> {
         });
     }
 
@@ -126,6 +136,16 @@ public class ServerNetwork {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
+
+    public static CompletableFuture<Boolean> requestClientTogglePlaybackPacket(ServerPlayerEntity player,
+            String filmId) {
+        player.sendMessage(Text.literal(String
+                .format("§c[BBSMCP Server] 已发送 requestClientTogglePlaybackPacket 数据包: filmId: %s", filmId)));
+
+        return ServerRequestBridge.request(player, CLIENT_TOGGLE_PLAYBACK, buf -> {
+            buf.writeString(filmId);
+        });
+    }
+
 }

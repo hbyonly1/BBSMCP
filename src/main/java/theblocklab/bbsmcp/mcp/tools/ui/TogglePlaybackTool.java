@@ -1,7 +1,5 @@
 package theblocklab.bbsmcp.mcp.tools.ui;
 
-import java.util.concurrent.CompletableFuture;
-
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.server.MinecraftServer;
@@ -9,12 +7,12 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
-import theblocklab.bbsmcp.network.ServerNetwork;
+import java.util.concurrent.CompletableFuture;
 
-public class OpenFilmTool extends MCPTool {
+public class TogglePlaybackTool extends MCPTool {
 
-    public OpenFilmTool() {
-        super("open_film", "打开目标 Film 的面板");
+    public TogglePlaybackTool() {
+        super("toggle_playback", "通过命令客户端面板触发，令游戏客户端开始/暂停播放指定的影片");
     }
 
     @Override
@@ -25,7 +23,7 @@ public class OpenFilmTool extends MCPTool {
                   "properties": {
                     "filmId": {
                       "type": "string",
-                      "description": "影片ID"
+                      "description": "要播放的影片 ID"
                     }
                   },
                   "required": ["filmId"]
@@ -36,13 +34,15 @@ public class OpenFilmTool extends MCPTool {
     @Override
     public CompletableFuture<MCPToolResponse> executeAsync(JsonObject arguments, MinecraftServer server) {
         String filmId = requireString(arguments, "filmId");
-
+        
         ServerPlayerEntity targetPlayer = getFirstOnlinePlayer(server);
         if (targetPlayer == null) {
             return CompletableFuture.completedFuture(
-                    MCPToolResponse.error(
-                            BBSMCPError.PLAYER_NOT_ONLINE.format(),
-                            BBSMCPError.PLAYER_NOT_ONLINE.getHint()));
+                MCPToolResponse.error(
+                    BBSMCPError.PLAYER_NOT_ONLINE.format(),
+                    BBSMCPError.PLAYER_NOT_ONLINE.getHint()
+                )
+            );
         }
 
         if (!theblocklab.bbsmcp.film.FilmManagerAPI.INSTANCE.hasFilm(filmId)) {
@@ -54,12 +54,12 @@ public class OpenFilmTool extends MCPTool {
             );
         }
 
-        // 由 ServerNetwork 统一封装网络发包细节，Tool 层只关心语义
-        return ServerNetwork.requestClientOpenFilmPanelPacket(targetPlayer, filmId)
+        // 完美使用专门支持事件驱动和轮询回执的 TogglePlayback 方法
+        return theblocklab.bbsmcp.network.ServerNetwork.requestClientTogglePlaybackPacket(targetPlayer, filmId)
                 .thenApply(success -> {
-                    return MCPToolResponse.success("成功打开了 " + filmId + " 的影片面板并得到客户端确认！");
+                    return MCPToolResponse.success("✅ 播放完毕！客户端已发回结束信号。影片: " + filmId);
                 }).exceptionally(e -> {
-                    return MCPToolResponse.error("打开面板异常 / 超时", e.getMessage());
+                    return MCPToolResponse.error("播放指令发送异常 / 客户端回应超时", e.getMessage());
                 });
     }
 }

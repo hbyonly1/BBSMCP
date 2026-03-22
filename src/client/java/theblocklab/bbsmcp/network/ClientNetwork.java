@@ -44,6 +44,14 @@ public class ClientNetwork {
                 (client, handler, buf, responseSender) -> {
                     handleClientOpenFilmPanelPacket(client, buf);
                 });
+        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_CLOSE_UI,
+                (client, handler, buf, responseSender) -> {
+                    handleClientCloseUIPacket(client, buf);
+                });
+        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_TOGGLE_PLAYBACK,
+                (client, handler, buf, responseSender) -> {
+                    handleClientTogglePlaybackPacket(client, buf);
+                });
 
         // === AI building 相关逻辑 ===
     }
@@ -92,6 +100,70 @@ public class ClientNetwork {
                 client.player.sendMessage(Text
                         .literal(String.format("§c[BBSMCP Client] 已接收 OpenFilmPanelPacket 数据包并打开影片面板: filmId: %s",
                                 filmId)));
+                sendOK(requestId);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private static void handleClientTogglePlaybackPacket(MinecraftClient client, PacketByteBuf buf) {
+        int requestId = buf.readInt();
+        String filmId = buf.readString();
+        client.execute(() -> {
+            try {
+                UIDashboard dashboard = BBSModClient.getDashboard();
+                UIScreen.open(dashboard);
+                UIFilmPanel filmPanel = dashboard.getPanel(UIFilmPanel.class);
+                filmPanel.fill(BBSMod.getFilms().load(filmId));
+                dashboard.setPanel(filmPanel);
+                filmPanel.overlay.close();
+
+                // 开始播放
+                filmPanel.togglePlayback();
+                client.player.sendMessage(Text.literal(String.format(
+                        "§c[BBSMCP Client] 已接收 handleClientTogglePlaybackPacket 数据包，开始播放影片: %s，正在等待播放结束...", filmId)));
+
+                // 启动一个后台线程进行轮询，绝对不阻塞 Minecraft 主渲染线程
+                new Thread(() -> {
+                    try {
+                        // 给主线程一点时间启动播放状态
+                        Thread.sleep(100);
+
+                        // 持续轮询：只要是播放状态，或者时间还没到总时长，就继续挂起
+                        while (filmPanel.isRunning()
+                                || filmPanel.getCursor() < ((Film) filmPanel.getData()).camera.calculateDuration()) {
+                            Thread.sleep(50);
+                        }
+
+                        // 循环结束说明播放已经完全停止
+                        client.execute(() -> {
+                            if (client.player != null) {
+                                client.player.sendMessage(Text.literal("§a[BBSMCP Client] 播放已完成，向服务端发送回调 (OK)"));
+                            }
+                            sendOK(requestId);
+                        });
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }, "BBSMCP-PlaybackMonitor").start();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private static void handleClientCloseUIPacket(MinecraftClient client, PacketByteBuf buf) {
+        int requestId = buf.readInt();
+        client.execute(() -> {
+            try {
+                // 等同于玩家按下了 ESC 键关掉当前 UI 面板
+                client.setScreen(null);
+
+                if (client.player != null) {
+                    client.player.sendMessage(Text.literal("§c[BBSMCP Client] 收到关闭命令，已关闭当前 UI 界面"));
+                }
                 sendOK(requestId);
             } catch (Exception e) {
                 e.printStackTrace();

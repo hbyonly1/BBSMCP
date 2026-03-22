@@ -1,7 +1,5 @@
 package theblocklab.bbsmcp.mcp.tools.ui;
 
-import java.util.concurrent.CompletableFuture;
-
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.server.MinecraftServer;
@@ -11,10 +9,12 @@ import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
 import theblocklab.bbsmcp.network.ServerNetwork;
 
-public class OpenFilmTool extends MCPTool {
+import java.util.concurrent.CompletableFuture;
 
-    public OpenFilmTool() {
-        super("open_film", "打开目标 Film 的面板");
+public class CloseGUITool extends MCPTool {
+
+    public CloseGUITool() {
+        super("close_gui", "关闭客户端当前打开的任何 UI 面板 (相当于玩家按下 ESC 键)");
     }
 
     @Override
@@ -22,21 +22,13 @@ public class OpenFilmTool extends MCPTool {
         return JsonParser.parseString("""
                 {
                   "type": "object",
-                  "properties": {
-                    "filmId": {
-                      "type": "string",
-                      "description": "影片ID"
-                    }
-                  },
-                  "required": ["filmId"]
+                  "properties": {}
                 }
                 """).getAsJsonObject();
     }
 
     @Override
     public CompletableFuture<MCPToolResponse> executeAsync(JsonObject arguments, MinecraftServer server) {
-        String filmId = requireString(arguments, "filmId");
-
         ServerPlayerEntity targetPlayer = getFirstOnlinePlayer(server);
         if (targetPlayer == null) {
             return CompletableFuture.completedFuture(
@@ -45,21 +37,12 @@ public class OpenFilmTool extends MCPTool {
                             BBSMCPError.PLAYER_NOT_ONLINE.getHint()));
         }
 
-        if (!theblocklab.bbsmcp.film.FilmManagerAPI.INSTANCE.hasFilm(filmId)) {
-            return CompletableFuture.completedFuture(
-                MCPToolResponse.error(
-                    BBSMCPError.FILM_NOT_FOUND.format(filmId),
-                    BBSMCPError.FILM_NOT_FOUND.getHint()
-                )
-            );
-        }
-
-        // 由 ServerNetwork 统一封装网络发包细节，Tool 层只关心语义
-        return ServerNetwork.requestClientOpenFilmPanelPacket(targetPlayer, filmId)
+        // 调用 ServerNetwork 封装好的方法向客户端发包
+        return ServerNetwork.requestClientCloseUIPacket(targetPlayer)
                 .thenApply(success -> {
-                    return MCPToolResponse.success("成功打开了 " + filmId + " 的影片面板并得到客户端确认！");
+                    return MCPToolResponse.success("成功发送关闭指令，客户端 UI 已退出！");
                 }).exceptionally(e -> {
-                    return MCPToolResponse.error("打开面板异常 / 超时", e.getMessage());
+                    return MCPToolResponse.error("关闭 UI 异常 / 超时", e.getMessage());
                 });
     }
 }
