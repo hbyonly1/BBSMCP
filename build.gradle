@@ -23,6 +23,13 @@ repositories {
 loom {
 	splitEnvironmentSourceSets()
 
+	// 自动进入某个世界
+	runs {
+		client {
+			programArgs "--quickPlaySingleplayer", "New World"
+		}
+	}
+
 	mods {
 		"bbsmcp" {
 			sourceSet sourceSets.main

@@ -52,6 +52,12 @@ public class RemoveClipTool extends MCPTool {
     }
 
     try {
+      // 前置操作：在执行写操作前，强制将客户端 UI 层面可能的未保存调整抢占落盘
+      ClipManagerAPI.requestSaveFilmAsync(player, filmId).join();
+
+      // 注解：ClipManagerAPI.removeClip 内部会自动调用 FilmManagerAPI.getInstance().getFilm(filmId)
+      // 若电影不存在，它会直接抛出包含明确错误信息的 BBSMCPException
+      // 所以在这里外层不需要，也不应该手动写 hasFilm(filmId) 存在性校验代码
       ClipManagerAPI.removeClip(player, filmId, index);
       return MCPToolResponse.success(
           "成功删除 Film '" + filmId + "' 中索引 " + index + " 的 Clip",

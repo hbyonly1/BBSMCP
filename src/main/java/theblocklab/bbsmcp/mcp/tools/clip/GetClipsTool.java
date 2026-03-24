@@ -2,7 +2,10 @@ package theblocklab.bbsmcp.mcp.tools.clip;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
 import theblocklab.bbsmcp.film.clips.ClipManagerAPI;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
@@ -42,7 +45,7 @@ public class GetClipsTool extends MCPTool {
             },
             "layer": {
               "type": "integer",
-              "description": "（可选）轨道层；需与 tick 同时提供，返回该 tick + layer 上的单个 Clip"
+              "description": "（可选）轨道层；单独提供则返回该层所有 Clip，配合 tick 返回该指定时刻的该层级单个 Clip"
             }
           },
           "required": ["filmId"]
@@ -59,6 +62,20 @@ public class GetClipsTool extends MCPTool {
     boolean hasLayer = arguments.has("layer");
 
     try {
+      // 前置一致性检查：强求等待客户端内的对应胶片 UI 执行磁盘落入保存
+      // 唯有这样才能确保下方我们调用的 API 给 AI 获取的属于与画面严格对齐的最新修改数据！
+      ServerPlayerEntity targetPlayer = getFirstOnlinePlayer(server);
+      if (targetPlayer == null) {
+        return MCPToolResponse.error(
+            BBSMCPError.PLAYER_NOT_ONLINE.format(),
+            BBSMCPError.PLAYER_NOT_ONLINE.getHint());
+      }
+      ClipManagerAPI.requestSaveFilmAsync(targetPlayer, filmId).join();
+
+      // 注解：这里调用的 ClipManagerAPI.getXXX 系列方法底层均会立刻调用 FilmManagerAPI.getFilm
+      // 如果给定的 filmId 不存在，会直接抛出包含完善文案的 BBSMCPException 被 catch 到
+      // 因此此处不再需要手动前置调用 hasFilm(filmId) 啦！
+
       // 模式 1：按索引查询单个 Clip
       if (hasIndex) {
         int index = arguments.get("index").getAsInt();
@@ -71,6 +88,16 @@ public class GetClipsTool extends MCPTool {
         int tick = arguments.get("tick").getAsInt();
         int layer = arguments.get("layer").getAsInt();
         String result = ClipManagerAPI.getClipByTickAndLayer(filmId, tick, layer);
+        return MCPToolResponse.success(result);
+      }
+
+      // 模式 2.5：只按 layer 查询一条轨道上所有的 Clip
+      if (!hasTick && hasLayer) {
+        int layer = arguments.get("layer").getAsInt();
+        String result = ClipManagerAPI.getClipsByLayer(filmId, layer);
+        if (result == null || result.isEmpty() || result.equals("[]")) {
+          return MCPToolResponse.success("layer=" + layer + " 层没有任何 Clip");
+        }
         return MCPToolResponse.success(result);
       }
 

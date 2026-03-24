@@ -5,6 +5,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
+import theblocklab.bbsmcp.exception.BBSMCPError;
+import theblocklab.bbsmcp.exception.BBSMCPException;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,7 +23,7 @@ public class ServerRequestBridge {
     // K: requestId, V: 等待的 Future
     private static final ConcurrentHashMap<Integer, CompletableFuture<Boolean>> PENDING_REQUESTS = new ConcurrentHashMap<>();
     private static final AtomicInteger REQUEST_COUNTER = new AtomicInteger(0);
-    
+
     // 用于超时的调度器
     private static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(1);
 
@@ -38,27 +40,43 @@ public class ServerRequestBridge {
      */
     public static void setup() {
         // 注册全局 ACK (OK) 数据包监听
-        ServerPlayNetworking.registerGlobalReceiver(ServerNetwork.OK, (server, player, handler, buf, responseSender) -> {
-            int requestId = buf.readInt();
-            
-            // 从挂起队列中取出并移除对应的 Promise
-            CompletableFuture<Boolean> future = PENDING_REQUESTS.remove(requestId);
-            if (future != null) {
-                // 唤醒挂起的线程
-                future.complete(true);
-            }
-        });
+        ServerPlayNetworking.registerGlobalReceiver(ServerNetwork.OK,
+                (server, player, handler, buf, responseSender) -> {
+                    int requestId = buf.readInt();
+
+                    // 从挂起队列中取出并移除对应的 Promise
+                    CompletableFuture<Boolean> future = PENDING_REQUESTS.remove(requestId);
+                    if (future != null) {
+                        // 唤醒挂起的线程
+                        future.complete(true);
+                    }
+                });
+
+        // 注册全局 ERROR 回传数据包监听
+        ServerPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_ERROR,
+                (server, player, handler, buf, responseSender) -> {
+                    int requestId = buf.readInt();
+                    String errorMessage = buf.readString();
+
+                    CompletableFuture<Boolean> future = PENDING_REQUESTS.remove(requestId);
+                    if (future != null) {
+                        // 不再当作 true 回传，而是直接强行中止整个异步流链条，抛出真正的内部异常！
+                        future.completeExceptionally(new BBSMCPException(
+                                BBSMCPError.CLIENT_EXECUTION_FAILED, errorMessage));
+                    }
+                });
     }
 
     /**
      * 向客户端发起请求并返回一个将在收到确认后触发的 CompletableFuture
      *
-     * @param player 目标玩家
-     * @param packetId 数据包的 Identifier (如 CLIENT_OPEN_FILM_PANEL)
+     * @param player        目标玩家
+     * @param packetId      数据包的 Identifier (如 CLIENT_OPEN_FILM_PANEL)
      * @param payloadWriter 写入请求业务数据的方法
      * @return 异步操作结点的 CompletableFuture
      */
-    public static CompletableFuture<Boolean> request(ServerPlayerEntity player, Identifier packetId, PayloadWriter payloadWriter) {
+    public static CompletableFuture<Boolean> request(ServerPlayerEntity player, Identifier packetId,
+            PayloadWriter payloadWriter) {
         // 1. 生成唯一 ID
         int requestId = REQUEST_COUNTER.incrementAndGet();
         CompletableFuture<Boolean> promise = new CompletableFuture<>();
@@ -70,7 +88,7 @@ public class ServerRequestBridge {
             // 3. 构建数据包，确保第一个发出的数据总是 requestId
             PacketByteBuf buf = PacketByteBufs.create();
             buf.writeInt(requestId);
-            
+
             // 4. 调用业务方提供的方法，将业务负载追加到 requestId 后面
             if (payloadWriter != null) {
                 payloadWriter.write(buf);
@@ -83,7 +101,8 @@ public class ServerRequestBridge {
             SCHEDULER.schedule(() -> {
                 CompletableFuture<Boolean> pending = PENDING_REQUESTS.remove(requestId);
                 if (pending != null && !pending.isDone()) {
-                    pending.completeExceptionally(new java.util.concurrent.TimeoutException("等待客户端请求超时: " + packetId.toString()));
+                    pending.completeExceptionally(
+                            new java.util.concurrent.TimeoutException("等待客户端请求超时: " + packetId.toString()));
                 }
             }, 10, TimeUnit.SECONDS);
 

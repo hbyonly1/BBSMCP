@@ -118,7 +118,7 @@ public class GetClipSchemaTool extends MCPTool {
       common fields (all clips):
         type(string,required), index(int,required), tick(int,default=0),
         duration(int,default=1), layer(int,default=0),
-        enabled(bool,default=true), title(string,optional)""";
+        enabled(bool,default=true), title(string,optional), envelope(object,optional)""";
 
   // ════════════════════ OVERWRITE ════════════════════
 

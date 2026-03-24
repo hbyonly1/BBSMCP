@@ -23,13 +23,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class TestTool extends MCPTool {
+public class E2EWorkflowTestTool extends MCPTool {
 
     // 使用一个单线程的调度器来处理 3 秒间隔延时，绝对不卡死主线程
     private static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(1);
 
-    public TestTool() {
-        super("test", "执行完整的串联自动化测试（清空环境 -> 创建 -> 打开 UI -> 添加3个Clip -> 获取 -> 删除）");
+    public E2EWorkflowTestTool() {
+        super("e2e_test", "执行完整的串联自动化测试（清空环境 -> 创建 -> 打开 UI -> 添加3个Clip -> 获取 -> 删除）");
     }
 
     @Override
@@ -169,7 +169,34 @@ public class TestTool extends MCPTool {
                             """);
                     addClipTool.execute(args2, server);
 
-                    notifyPlayer(player, "4/8", "成功连续插入 3 个镜头 (idle, dolly, shake)。");
+                    // 插入一个必然会报错的重叠 Clip (层级 0，覆盖范围 [10-30)，与刚才的第一个 idle [0-20) 重叠)
+                    JsonObject argsErr = new JsonObject();
+                    argsErr.addProperty("filmId", "test");
+                    argsErr.addProperty("json", """
+                            {
+                              "type": "idle",
+                              "index": 3,
+                              "tick": 10,
+                              "duration": 20,
+                              "layer": 0,
+                              "position": {
+                                "point": {"x": 5.0, "y": 64.0, "z": 0.0},
+                                "angle": {"yaw": 0.0, "pitch": -10.0, "roll": 0.0, "fov": 70.0}
+                              }
+                            }
+                            """);
+                    try {
+                        MCPToolResponse errRes = addClipTool.execute(argsErr, server);
+                        if (errRes.isError()) {
+                            notifyPlayer(player, "4.5/8", "✓ 测试通过：成功拦截重叠非法剪辑请求 (" + errRes.toJsonString() + ")");
+                        } else {
+                            notifyPlayer(player, "4.5/8", "❌ 严重警告：应当被重叠检测拦截的 Clip 居然被添加成功了！");
+                        }
+                    } catch (Exception e) {
+                        notifyPlayer(player, "4.5/8", "✓ 测试通过：成功拦截并捕获重叠非法剪辑请求 (" + e.getMessage() + ")");
+                    }
+
+                    notifyPlayer(player, "4.9/8", "成功完成 3 个合法镜头的挂载以及 1 个重叠镜头的非法拦截。");
                     return delay3s();
                 })
                 .thenCompose(v -> {

@@ -52,6 +52,10 @@ public class ClientNetwork {
                 (client, handler, buf, responseSender) -> {
                     handleClientTogglePlaybackPacket(client, buf);
                 });
+        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_SAVE_FILM,
+                (client, handler, buf, responseSender) -> {
+                    handleClientSaveFilmPacket(client, buf);
+                });
 
         // === AI building 相关逻辑 ===
     }
@@ -62,6 +66,20 @@ public class ClientNetwork {
             PacketByteBuf buf = PacketByteBufs.create();
             buf.writeInt(requestId);
             ClientPlayNetworking.send(ServerNetwork.OK, buf);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void sendError(int requestId, String message) {
+        try {
+            PacketByteBuf buf = PacketByteBufs.create();
+            buf.writeInt(requestId);
+            buf.writeString(message);
+            ClientPlayNetworking.send(ServerNetwork.CLIENT_ERROR, buf);
+            if (MinecraftClient.getInstance().player != null) {
+                MinecraftClient.getInstance().player.sendMessage(Text.literal("§c[BBSMCP Client 内部错误抛出] " + message));
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -103,6 +121,7 @@ public class ClientNetwork {
                 sendOK(requestId);
             } catch (Exception e) {
                 e.printStackTrace();
+                sendError(requestId, "打开影片面板失败: " + e.getMessage());
             }
         });
     }
@@ -150,6 +169,7 @@ public class ClientNetwork {
 
             } catch (Exception e) {
                 e.printStackTrace();
+                sendError(requestId, "播放影片交互失败: " + e.getMessage());
             }
         });
     }
@@ -167,6 +187,36 @@ public class ClientNetwork {
                 sendOK(requestId);
             } catch (Exception e) {
                 e.printStackTrace();
+                sendError(requestId, "尝试唤下 ESC 或清空界面时报错: " + e.getMessage());
+            }
+        });
+    }
+
+    private static void handleClientSaveFilmPacket(MinecraftClient client, PacketByteBuf buf) {
+        int requestId = buf.readInt();
+        String filmId = buf.readString();
+        client.execute(() -> {
+            try {
+                UIDashboard dashboard = BBSModClient.getDashboard();
+                UIFilmPanel filmPanel = dashboard.getPanel(UIFilmPanel.class);
+                if (filmPanel == null || filmPanel.getData() == null) {
+                    sendError(requestId, "客户端尚未打开影片，无法执行保存操作！");
+                    return;
+                }
+                
+                String openedFilmId = filmPanel.getData().getId();
+                if (!openedFilmId.equals(filmId)) {
+                    sendError(requestId, "客户端当前打开的影片 (" + openedFilmId + ") 与请求保存的影片 (" + filmId + ") 不匹配！");
+                    return;
+                }
+                filmPanel.forceSave();
+                if (client.player != null) {
+                    client.player.sendMessage(Text.literal(String.format("§c[BBSMCP Client] 已成功保存影片并落盘: %s", filmId)));
+                }
+                sendOK(requestId);
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendError(requestId, "强制保存文件过程发生异常: " + e.getMessage());
             }
         });
     }

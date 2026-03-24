@@ -5,6 +5,7 @@ import java.util.concurrent.CompletableFuture;
 
 import com.google.gson.JsonObject;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
 
@@ -78,8 +79,8 @@ public abstract class MCPTool {
     /**
      * 获取服务器内第一个在线玩家，若无玩家在线则返回 null。
      */
-    protected net.minecraft.server.network.ServerPlayerEntity getFirstOnlinePlayer(MinecraftServer server) {
-        List<net.minecraft.server.network.ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
+    protected ServerPlayerEntity getFirstOnlinePlayer(MinecraftServer server) {
+        List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
         return players.isEmpty() ? null : players.get(0);
     }
 

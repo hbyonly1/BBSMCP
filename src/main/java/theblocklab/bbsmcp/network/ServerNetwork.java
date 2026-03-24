@@ -26,6 +26,7 @@ public class ServerNetwork {
     public static final Identifier CLIENT_OPEN_FILM_PANEL = new Identifier("bbsmcp", "client_open_film_panel");
     public static final Identifier CLIENT_TOGGLE_PLAYBACK = new Identifier("bbsmcp", "client_toggle_playback");
     public static final Identifier CLIENT_CLOSE_UI = new Identifier("bbsmcp", "client_close_ui");
+    public static final Identifier CLIENT_SAVE_FILM = new Identifier("bbsmcp", "client_save_film");
 
     // === AI building 相关 Identifier ===
     // 客户端到服务端: 生成建筑请求
@@ -35,6 +36,7 @@ public class ServerNetwork {
 
     // === utils 相关 Identifier ===
     public static final Identifier OK = new Identifier("bbsmcp", "ok");
+    public static final Identifier CLIENT_ERROR = new Identifier("bbsmcp", "client_error");
 
     private static ServerPacketCrusher crusher = new ServerPacketCrusher();
 
@@ -70,6 +72,15 @@ public class ServerNetwork {
         player.sendMessage(Text.literal("§c[BBSMCP Server] 正在通过 Bridge 请求关闭客户端 UI"));
 
         return ServerRequestBridge.request(player, CLIENT_CLOSE_UI, buf -> {
+        });
+    }
+
+    // 请求客户端立刻执行 Film 落盘保存
+    public static CompletableFuture<Boolean> requestClientSaveFilmPacket(ServerPlayerEntity player, String filmId) {
+        player.sendMessage(Text.literal(String.format("§c[BBSMCP Server] 正在通过 Bridge 请求客户端落盘保存影片: filmId: %s", filmId)));
+
+        return ServerRequestBridge.request(player, CLIENT_SAVE_FILM, buf -> {
+            buf.writeString(filmId);
         });
     }
 
