@@ -7,6 +7,9 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.text.Text;
+
+import com.google.gson.JsonObject;
+
 import mchorse.bbs_mod.BBSMod;
 import mchorse.bbs_mod.BBSModClient;
 import mchorse.bbs_mod.data.DataStorageUtils;
@@ -56,6 +59,14 @@ public class ClientNetwork {
                 (client, handler, buf, responseSender) -> {
                     handleClientSaveFilmPacket(client, buf);
                 });
+        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_SET_CURSOR,
+                (client, handler, buf, responseSender) -> {
+                    handleClientSetCursorPacket(client, buf);
+                });
+        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_GET_CURSOR,
+                (client, handler, buf, responseSender) -> {
+                    handleClientGetCursorPacket(client, buf);
+                });
 
         // === AI building 相关逻辑 ===
     }
@@ -66,6 +77,17 @@ public class ClientNetwork {
             PacketByteBuf buf = PacketByteBufs.create();
             buf.writeInt(requestId);
             ClientPlayNetworking.send(ServerNetwork.OK, buf);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void sendData(int requestId, String data) {
+        try {
+            PacketByteBuf buf = PacketByteBufs.create();
+            buf.writeInt(requestId);
+            buf.writeString(data);
+            ClientPlayNetworking.send(ServerNetwork.CLIENT_DATA_RESPONSE, buf);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -113,6 +135,7 @@ public class ClientNetwork {
                 UIScreen.open(dashboard);
                 UIFilmPanel filmPanel = dashboard.getPanel(UIFilmPanel.class);
                 filmPanel.fill(BBSMod.getFilms().load(filmId));
+
                 dashboard.setPanel(filmPanel);
                 filmPanel.overlay.close();
                 client.player.sendMessage(Text
@@ -203,7 +226,7 @@ public class ClientNetwork {
                     sendError(requestId, "客户端尚未打开影片，无法执行保存操作！");
                     return;
                 }
-                
+
                 String openedFilmId = filmPanel.getData().getId();
                 if (!openedFilmId.equals(filmId)) {
                     sendError(requestId, "客户端当前打开的影片 (" + openedFilmId + ") 与请求保存的影片 (" + filmId + ") 不匹配！");
@@ -217,6 +240,65 @@ public class ClientNetwork {
             } catch (Exception e) {
                 e.printStackTrace();
                 sendError(requestId, "强制保存文件过程发生异常: " + e.getMessage());
+            }
+        });
+    }
+
+    private static void handleClientSetCursorPacket(MinecraftClient client, PacketByteBuf buf) {
+        int requestId = buf.readInt();
+        String filmId = buf.readString();
+        int tick = buf.readInt();
+        client.execute(() -> {
+            try {
+                UIDashboard dashboard = BBSModClient.getDashboard();
+                UIFilmPanel filmPanel = dashboard.getPanel(UIFilmPanel.class);
+                if (filmPanel == null || filmPanel.getData() == null) {
+                    sendError(requestId, "客户端尚未打开影片 " + filmId);
+                    return;
+                }
+                String openedFilmId = filmPanel.getData().getId();
+                if (!openedFilmId.equals(filmId)) {
+                    sendError(requestId, "客户端当前打开的影片 (" + openedFilmId + ") 与请求操作的影片 (" + filmId + ") 不匹配！");
+                    return;
+                }
+
+                filmPanel.setCursor(tick);
+                if (client.player != null) {
+                    client.player.sendMessage(Text.literal(String.format("§c[BBSMCP Client] 已成功设置游标到: %d", tick)));
+                }
+                sendOK(requestId);
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendError(requestId, "设置游标失败: " + e.getMessage());
+            }
+        });
+    }
+
+    private static void handleClientGetCursorPacket(MinecraftClient client, PacketByteBuf buf) {
+        int requestId = buf.readInt();
+        String filmId = buf.readString();
+        client.execute(() -> {
+            try {
+                UIDashboard dashboard = BBSModClient.getDashboard();
+                UIFilmPanel filmPanel = dashboard.getPanel(UIFilmPanel.class);
+                if (filmPanel == null || filmPanel.getData() == null) {
+                    sendError(requestId, "客户端尚未打开影片 " + filmId);
+                    return;
+                }
+                String openedFilmId = filmPanel.getData().getId();
+                if (!openedFilmId.equals(filmId)) {
+                    sendError(requestId, "客户端当前打开的影片 (" + openedFilmId + ") 与请求操作的影片 (" + filmId + ") 不匹配！");
+                    return;
+                }
+
+                int tick = filmPanel.getCursor();
+                JsonObject response = new JsonObject();
+                response.addProperty("cursor", tick);
+
+                sendData(requestId, response.toString());
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendError(requestId, "获取游标失败: " + e.getMessage());
             }
         });
     }

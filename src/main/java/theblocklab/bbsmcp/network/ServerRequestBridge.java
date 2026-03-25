@@ -22,6 +22,10 @@ public class ServerRequestBridge {
 
     // K: requestId, V: 等待的 Future
     private static final ConcurrentHashMap<Integer, CompletableFuture<Boolean>> PENDING_REQUESTS = new ConcurrentHashMap<>();
+    
+    // K: requestId, V: 等待返回泛型数据 (通常是 JSON String) 的 Future
+    private static final ConcurrentHashMap<Integer, CompletableFuture<String>> PENDING_DATA_REQUESTS = new ConcurrentHashMap<>();
+    
     private static final AtomicInteger REQUEST_COUNTER = new AtomicInteger(0);
 
     // 用于超时的调度器
@@ -52,6 +56,18 @@ public class ServerRequestBridge {
                     }
                 });
 
+        // 注册全局泛型数据回传包监听
+        ServerPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_DATA_RESPONSE,
+                (server, player, handler, buf, responseSender) -> {
+                    int requestId = buf.readInt();
+                    String dataString = buf.readString();
+
+                    CompletableFuture<String> future = PENDING_DATA_REQUESTS.remove(requestId);
+                    if (future != null) {
+                        future.complete(dataString);
+                    }
+                });
+
         // 注册全局 ERROR 回传数据包监听
         ServerPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_ERROR,
                 (server, player, handler, buf, responseSender) -> {
@@ -62,6 +78,12 @@ public class ServerRequestBridge {
                     if (future != null) {
                         // 不再当作 true 回传，而是直接强行中止整个异步流链条，抛出真正的内部异常！
                         future.completeExceptionally(new BBSMCPException(
+                                BBSMCPError.CLIENT_EXECUTION_FAILED, errorMessage));
+                    }
+
+                    CompletableFuture<String> dataFuture = PENDING_DATA_REQUESTS.remove(requestId);
+                    if (dataFuture != null) {
+                        dataFuture.completeExceptionally(new BBSMCPException(
                                 BBSMCPError.CLIENT_EXECUTION_FAILED, errorMessage));
                     }
                 });
@@ -108,6 +130,42 @@ public class ServerRequestBridge {
 
         } catch (Exception e) {
             PENDING_REQUESTS.remove(requestId);
+            promise.completeExceptionally(e);
+        }
+
+        return promise;
+    }
+
+    /**
+     * 发起一个附带预期数据载荷返回的网桥请求
+     */
+    public static CompletableFuture<String> requestData(ServerPlayerEntity player, Identifier packetId,
+            PayloadWriter payloadWriter) {
+        int requestId = REQUEST_COUNTER.incrementAndGet();
+        CompletableFuture<String> promise = new CompletableFuture<>();
+
+        PENDING_DATA_REQUESTS.put(requestId, promise);
+
+        try {
+            PacketByteBuf buf = PacketByteBufs.create();
+            buf.writeInt(requestId);
+
+            if (payloadWriter != null) {
+                payloadWriter.write(buf);
+            }
+
+            ServerPlayNetworking.send(player, packetId, buf);
+
+            SCHEDULER.schedule(() -> {
+                CompletableFuture<String> pending = PENDING_DATA_REQUESTS.remove(requestId);
+                if (pending != null && !pending.isDone()) {
+                    pending.completeExceptionally(
+                            new java.util.concurrent.TimeoutException("等待客户端拿取数据请求超时: " + packetId.toString()));
+                }
+            }, 10, TimeUnit.SECONDS);
+
+        } catch (Exception e) {
+            PENDING_DATA_REQUESTS.remove(requestId);
             promise.completeExceptionally(e);
         }
 

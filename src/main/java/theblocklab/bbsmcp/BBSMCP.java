@@ -21,7 +21,7 @@ public class BBSMCP implements ModInitializer {
 
 		// 创建示例文件
 		try {
-			theblocklab.bbsmcp.film.clips.ClipFileLoader.createExampleFile();
+			theblocklab.bbsmcp.film.clips.utils.ClipFileLoader.createExampleFile();
 			LOGGER.info("创建 clip 示例文件成功! ");
 		} catch (Exception e) {
 			LOGGER.warn("创建 clip 示例文件失败! ", e);

@@ -1,7 +1,8 @@
-package theblocklab.bbsmcp.film.clips;
+package theblocklab.bbsmcp.film.clips.utils;
 
 import theblocklab.bbsmcp.BBSMCP;
 import theblocklab.bbsmcp.film.FilmManagerAPI;
+import theblocklab.bbsmcp.film.clips.ClipManagerAPI;
 import mchorse.bbs_mod.data.DataParser;
 import mchorse.bbs_mod.data.types.BaseType;
 import mchorse.bbs_mod.data.types.ListType;
@@ -103,13 +104,13 @@ public class ClipFileLoader {
                 lastLoadedFilepath = filepath;
             }
 
-            FilmManagerAPI.pushFilmToUI(player, filmId, (MapType)film.toData());
+            FilmManagerAPI.pushFilmToUI(player, filmId, (MapType) film.toData());
             // load 返回的仅仅是 film 的数据副本，要使改动生效，应该保存到硬盘
-            FilmManagerAPI.INSTANCE.saveFilm(filmId, (MapType)film.toData());
+            FilmManagerAPI.INSTANCE.saveFilm(filmId, (MapType) film.toData());
 
             // 选中最后一个添加的镜头
             // if (successCount > 0) {
-            //     ClipManagerAPI.pickLastClip(filmId, player);
+            // ClipManagerAPI.pickLastClip(filmId, player);
             // }
 
             // 发送总结消息

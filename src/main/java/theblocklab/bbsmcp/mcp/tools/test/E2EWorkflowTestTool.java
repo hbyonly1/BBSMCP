@@ -253,11 +253,39 @@ public class E2EWorkflowTestTool extends MCPTool {
                     JsonObject args = new JsonObject();
                     args.addProperty("filmId", "test");
 
-                    notifyPlayer(player, "8/8", "播放删除了震动修饰器后的影片！全链路测试圆满结束！");
+                    notifyPlayer(player, "8/10", "播放删除了震动修饰器后的影片！");
 
                     // 同样用真正的异步发包等回执
-                    return togglePlaybackTool.executeAsync(args, server)
-                            .thenApply(res -> MCPToolResponse.success("测试工作流全部执行完毕并成功"));
+                    return togglePlaybackTool.executeAsync(args, server).thenApply(res -> null);
+                })
+                .thenCompose(v -> delay3s())
+                .thenCompose(v -> {
+                    // ==========================================
+                    // Step 9: 播放完成后，尝试使用网桥设置游标 (Set Cursor)
+                    // ==========================================
+                    theblocklab.bbsmcp.mcp.tools.ui.SetCursorTool setCursorTool = new theblocklab.bbsmcp.mcp.tools.ui.SetCursorTool();
+                    JsonObject args = new JsonObject();
+                    args.addProperty("filmId", "test");
+                    int randomTick = (int) (Math.random() * 50) + 10; // 生成 10~60 的随机帧
+                    args.addProperty("tick", randomTick);
+
+                    notifyPlayer(player, "9/10", "播放结束，开始测试游标控制：设置游标到随机帧 " + randomTick);
+                    return setCursorTool.executeAsync(args, server).thenApply(res -> null);
+                })
+                .thenCompose(v -> delay3s())
+                .thenCompose(v -> {
+                    // ==========================================
+                    // Step 10: 尝试使用网桥泛型数据通道读取游标 (Get Cursor)
+                    // ==========================================
+                    theblocklab.bbsmcp.mcp.tools.ui.GetCursorTool getCursorTool = new theblocklab.bbsmcp.mcp.tools.ui.GetCursorTool();
+                    JsonObject args = new JsonObject();
+                    args.addProperty("filmId", "test");
+
+                    notifyPlayer(player, "10/10", "设置同步成功，开始底层网桥跨端查询最新游标真实位置...");
+                    return getCursorTool.executeAsync(args, server).thenApply(res -> {
+                        notifyPlayer(player, "End", "游标查收结果: " + res.toJsonString() + " 。全链路(增删改查+UI网络回调)大满贯！");
+                        return MCPToolResponse.success("测试工作流全部执行完毕并成功");
+                    });
                 })
                 .exceptionally(e -> {
                     // 如果中间有任何一步报错，都会流转到这里

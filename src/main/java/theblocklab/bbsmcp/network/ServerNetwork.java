@@ -19,24 +19,27 @@ public class ServerNetwork {
     // Identifier 是数据包的实际名称，例如 SERVER_FILM_DATA 就是 server 端的 data
     public static final Identifier REQUEST_CLIENT_FILM_DATA = new Identifier("bbsmcp", "request_client_film_data");
     public static final Identifier CLIENT_FILM_DATA = new Identifier("bbsmcp", "client_film_data");
-
     public static final Identifier SERVER_FILM_DATA = new Identifier("bbsmcp", "server_film_data");
-    public static final Identifier CLIENT_PICK_CLIP = new Identifier("bbsmcp", "client_pick_clip");
 
+    // === UI Query & Command ===
+    public static final Identifier CLIENT_PICK_CLIP = new Identifier("bbsmcp", "client_pick_clip");
     public static final Identifier CLIENT_OPEN_FILM_PANEL = new Identifier("bbsmcp", "client_open_film_panel");
     public static final Identifier CLIENT_TOGGLE_PLAYBACK = new Identifier("bbsmcp", "client_toggle_playback");
     public static final Identifier CLIENT_CLOSE_UI = new Identifier("bbsmcp", "client_close_ui");
+
+    public static final Identifier CLIENT_SET_CURSOR = new Identifier("bbsmcp", "client_set_cursor");
+    public static final Identifier CLIENT_GET_CURSOR = new Identifier("bbsmcp", "client_get_cursor");
+
     public static final Identifier CLIENT_SAVE_FILM = new Identifier("bbsmcp", "client_save_film");
 
     // === AI building 相关 Identifier ===
-    // 客户端到服务端: 生成建筑请求
     public static final Identifier GENERATE_BUILDING_C2S = new Identifier("bbsmcp", "generate_building");
-    // 服务端到客户端: 建筑生成进度
     public static final Identifier BUILDING_PROGRESS_S2C = new Identifier("bbsmcp", "building_progress");
 
     // === utils 相关 Identifier ===
     public static final Identifier OK = new Identifier("bbsmcp", "ok");
     public static final Identifier CLIENT_ERROR = new Identifier("bbsmcp", "client_error");
+    public static final Identifier CLIENT_DATA_RESPONSE = new Identifier("bbsmcp", "client_data_response");
 
     private static ServerPacketCrusher crusher = new ServerPacketCrusher();
 
@@ -77,7 +80,8 @@ public class ServerNetwork {
 
     // 请求客户端立刻执行 Film 落盘保存
     public static CompletableFuture<Boolean> requestClientSaveFilmPacket(ServerPlayerEntity player, String filmId) {
-        player.sendMessage(Text.literal(String.format("§c[BBSMCP Server] 正在通过 Bridge 请求客户端落盘保存影片: filmId: %s", filmId)));
+        player.sendMessage(
+                Text.literal(String.format("§c[BBSMCP Server] 正在通过 Bridge 请求客户端落盘保存影片: filmId: %s", filmId)));
 
         return ServerRequestBridge.request(player, CLIENT_SAVE_FILM, buf -> {
             buf.writeString(filmId);
@@ -159,4 +163,17 @@ public class ServerNetwork {
         });
     }
 
+    public static CompletableFuture<Boolean> requestClientSetCursorPacket(ServerPlayerEntity player, String filmId,
+            int tick) {
+        return ServerRequestBridge.request(player, CLIENT_SET_CURSOR, buf -> {
+            buf.writeString(filmId);
+            buf.writeInt(tick);
+        });
+    }
+
+    public static CompletableFuture<String> requestClientGetCursorPacket(ServerPlayerEntity player, String filmId) {
+        return ServerRequestBridge.requestData(player, CLIENT_GET_CURSOR, buf -> {
+            buf.writeString(filmId);
+        });
+    }
 }

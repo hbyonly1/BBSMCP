@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import theblocklab.bbsmcp.film.clips.ClipFileLoader;
+import theblocklab.bbsmcp.film.clips.utils.ClipFileLoader;
 import theblocklab.bbsmcp.mcp.core.*;
 
 public class LoadClipsFromFileTool extends MCPTool {

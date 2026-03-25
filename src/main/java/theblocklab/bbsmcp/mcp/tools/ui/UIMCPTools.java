@@ -6,7 +6,8 @@ public class UIMCPTools extends MCPToolProvider {
     public UIMCPTools() {
         registerTool(new OpenFilmTool());
         registerTool(new PlayFilmTool());
-        registerTool(new CloseGUITool());
         registerTool(new TogglePlaybackTool());
+        registerTool(new GetCursorTool());
+        registerTool(new SetCursorTool());
     }
 }

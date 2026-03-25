@@ -7,6 +7,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
+import theblocklab.bbsmcp.network.ServerNetwork;
+
 import java.util.concurrent.CompletableFuture;
 
 public class PlayFilmTool extends MCPTool {
@@ -38,28 +40,24 @@ public class PlayFilmTool extends MCPTool {
     @Override
     public CompletableFuture<MCPToolResponse> executeAsync(JsonObject arguments, MinecraftServer server) {
         String filmId = requireString(arguments, "filmId");
-        
+
         ServerPlayerEntity targetPlayer = getFirstOnlinePlayer(server);
         if (targetPlayer == null) {
             return CompletableFuture.completedFuture(
-                MCPToolResponse.error(
-                    BBSMCPError.PLAYER_NOT_ONLINE.format(),
-                    BBSMCPError.PLAYER_NOT_ONLINE.getHint()
-                )
-            );
+                    MCPToolResponse.error(
+                            BBSMCPError.PLAYER_NOT_ONLINE.format(),
+                            BBSMCPError.PLAYER_NOT_ONLINE.getHint()));
         }
 
         if (!theblocklab.bbsmcp.film.FilmManagerAPI.INSTANCE.hasFilm(filmId)) {
             return CompletableFuture.completedFuture(
-                MCPToolResponse.error(
-                    BBSMCPError.FILM_NOT_FOUND.format(filmId),
-                    BBSMCPError.FILM_NOT_FOUND.getHint()
-                )
-            );
+                    MCPToolResponse.error(
+                            BBSMCPError.FILM_NOT_FOUND.format(filmId),
+                            BBSMCPError.FILM_NOT_FOUND.getHint()));
         }
 
         // 调用 ServerNetwork 封装好的异步发包等待方法，完美利用我们刚才的轮询回执
-        return theblocklab.bbsmcp.network.ServerNetwork.requestClientTogglePlaybackPacket(targetPlayer, filmId)
+        return ServerNetwork.requestClientTogglePlaybackPacket(targetPlayer, filmId)
                 .thenApply(success -> {
                     return MCPToolResponse.success("✅ 播放完毕！客户端已发回结束信号。影片: " + filmId);
                 }).exceptionally(e -> {
