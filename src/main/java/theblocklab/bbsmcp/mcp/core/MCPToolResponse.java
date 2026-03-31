@@ -62,4 +62,8 @@ public class MCPToolResponse {
     public boolean isError() {
         return "error".equals(this.status);
     }
+    
+    public String getMessage() {
+        return this.message;
+    }
 }

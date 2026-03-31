@@ -11,10 +11,9 @@ import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
 import theblocklab.bbsmcp.network.ServerNetwork;
 
-public class OpenFilmTool extends MCPTool {
-
-    public OpenFilmTool() {
-        super("open_film", "打开目标 Film 的面板");
+public class OpenReplayEditorTool extends MCPTool {
+    public OpenReplayEditorTool() {
+        super("open_replay_editor", "打开 Replay 编辑器");
     }
 
     @Override
@@ -25,10 +24,14 @@ public class OpenFilmTool extends MCPTool {
                   "properties": {
                     "filmId": {
                       "type": "string",
-                      "description": "影片ID"
+                      "description": "影片 ID"
+                    },
+                    "replayIndex": {
+                      "type": "integer",
+                      "description": "Replay 索引"
                     }
                   },
-                  "required": ["filmId"]
+                  "required": ["filmId", "replayIndex"]
                 }
                 """).getAsJsonObject();
     }
@@ -36,6 +39,7 @@ public class OpenFilmTool extends MCPTool {
     @Override
     public CompletableFuture<MCPToolResponse> executeAsync(JsonObject arguments, MinecraftServer server) {
         String filmId = requireString(arguments, "filmId");
+        int replayIndex = requireInt(arguments, "replayIndex");
 
         ServerPlayerEntity targetPlayer = getFirstOnlinePlayer(server);
         if (targetPlayer == null) {
@@ -47,19 +51,17 @@ public class OpenFilmTool extends MCPTool {
 
         if (!theblocklab.bbsmcp.film.FilmManagerAPI.INSTANCE.hasFilm(filmId)) {
             return CompletableFuture.completedFuture(
-                MCPToolResponse.error(
-                    BBSMCPError.FILM_NOT_FOUND.format(filmId),
-                    BBSMCPError.FILM_NOT_FOUND.getHint()
-                )
-            );
+                    MCPToolResponse.error(
+                            BBSMCPError.FILM_NOT_FOUND.format(filmId),
+                            BBSMCPError.FILM_NOT_FOUND.getHint()));
         }
 
         // 由 ServerNetwork 统一封装网络发包细节，Tool 层只关心语义
-        return ServerNetwork.requestClientOpenFilmPanelPacket(targetPlayer, filmId)
+        return ServerNetwork.requestClientOpenReplayEditorPacket(targetPlayer, filmId, replayIndex)
                 .thenApply(success -> {
-                    return MCPToolResponse.success("成功打开了 " + filmId + " 的影片面板并得到客户端确认！");
+                    return MCPToolResponse.success("成功打开了 Replay 编辑器并得到客户端确认！");
                 }).exceptionally(e -> {
-                    return MCPToolResponse.error("打开面板异常 / 超时", e.getMessage());
+                    return MCPToolResponse.error("打开 Replay 编辑器异常 / 超时", e.getMessage());
                 });
     }
 }

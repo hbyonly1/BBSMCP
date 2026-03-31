@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import theblocklab.bbsmcp.mcp.MCPServerImpl;
 import theblocklab.bbsmcp.mcp.tools.clip.ClipManagerMCPTools;
 import theblocklab.bbsmcp.mcp.tools.film.FilmManagerMCPTools;
+import theblocklab.bbsmcp.mcp.tools.replay.ReplayMCPTools;
 import theblocklab.bbsmcp.mcp.tools.test.TestMCPTools;
 import theblocklab.bbsmcp.mcp.tools.ui.UIMCPTools;
 
@@ -36,6 +37,7 @@ public class BBSMCP implements ModInitializer {
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new FilmManagerMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new ClipManagerMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new UIMCPTools());
+			MCPServerImpl.INSTANCE.getRouter().registerProvider(new ReplayMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new TestMCPTools());
 
 			LOGGER.info("BBS MCP Server Hook Registered");

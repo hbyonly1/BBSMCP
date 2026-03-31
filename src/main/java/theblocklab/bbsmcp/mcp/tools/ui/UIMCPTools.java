@@ -4,7 +4,7 @@ import theblocklab.bbsmcp.mcp.core.MCPToolProvider;
 
 public class UIMCPTools extends MCPToolProvider {
     public UIMCPTools() {
-        registerTool(new OpenFilmTool());
+        registerTool(new OpenFilmEditorTool());
         registerTool(new PlayFilmTool());
         registerTool(new TogglePlaybackTool());
         registerTool(new GetCursorTool());

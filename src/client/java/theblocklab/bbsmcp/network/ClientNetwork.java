@@ -8,6 +8,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.text.Text;
 
+import java.util.List;
+
 import com.google.gson.JsonObject;
 
 import mchorse.bbs_mod.BBSMod;
@@ -15,6 +17,7 @@ import mchorse.bbs_mod.BBSModClient;
 import mchorse.bbs_mod.data.DataStorageUtils;
 import mchorse.bbs_mod.data.types.MapType;
 import mchorse.bbs_mod.film.Film;
+import mchorse.bbs_mod.film.replays.Replay;
 import mchorse.bbs_mod.network.ClientPacketCrusher;
 import mchorse.bbs_mod.ui.dashboard.UIDashboard;
 import mchorse.bbs_mod.ui.film.UIClips;
@@ -46,6 +49,10 @@ public class ClientNetwork {
         ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_OPEN_FILM_PANEL,
                 (client, handler, buf, responseSender) -> {
                     handleClientOpenFilmPanelPacket(client, buf);
+                });
+        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_OPEN_REPLAY_EDITOR,
+                (client, handler, buf, responseSender) -> {
+                    handleClientOpenReplayEditorPacket(client, buf);
                 });
         ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_CLOSE_UI,
                 (client, handler, buf, responseSender) -> {
@@ -145,6 +152,44 @@ public class ClientNetwork {
             } catch (Exception e) {
                 e.printStackTrace();
                 sendError(requestId, "打开影片面板失败: " + e.getMessage());
+            }
+        });
+    }
+
+    private static void handleClientOpenReplayEditorPacket(MinecraftClient client, PacketByteBuf buf) {
+        int requestId = buf.readInt();
+        String filmId = buf.readString();
+        int replayIndex = buf.readInt();
+        client.execute(() -> {
+            try {
+                UIDashboard dashboard = BBSModClient.getDashboard();
+                UIScreen.open(dashboard);
+                UIFilmPanel filmPanel = dashboard.getPanel(UIFilmPanel.class);
+                filmPanel.fill(BBSMod.getFilms().load(filmId));
+
+                dashboard.setPanel(filmPanel);
+                filmPanel.overlay.close();
+
+                // 打开回放编辑器子面板
+                filmPanel.showPanel(filmPanel.replayEditor);
+
+                // 选中指定的 Replay
+                Film film = (Film) filmPanel.getData();
+                if (film != null) {
+                    List<Replay> replays = film.replays.getList();
+                    if (replayIndex >= 0 && replayIndex < replays.size()) {
+                        filmPanel.replayEditor.setReplay(replays.get(replayIndex));
+                    }
+                }
+
+                client.player.sendMessage(Text
+                        .literal(String.format(
+                                "§c[BBSMCP Client] 已接收 OpenReplayEditorPacket 数据包并打开回放编辑器: filmId: %s, replayIndex: %d",
+                                filmId, replayIndex)));
+                sendOK(requestId);
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendError(requestId, "打开回放编辑器失败: " + e.getMessage());
             }
         });
     }

@@ -55,14 +55,14 @@ public class FilmManagerAPI {
         return film;
     }
 
-    // public void syncFilmC2S(ServerPlayerEntity player, String filmId) {
-    // theblocklab.bbsmcp.network.ServerNetwork.requestClientFilmDataPacket(player,
-    // filmId);
-    // }
+    public static void sync(ServerPlayerEntity player, String filmId, Film film) {
+        MapType filmData = (MapType) film.toData();
+        FilmManagerAPI.pushFilmToUI(player, filmId, filmData);
+        FilmManagerAPI.INSTANCE.saveFilm(filmId, filmData);
+    }
 
     // 若要同步到客户端，应先向客户端 UI 填充电影数据！再保存
     // UI 会定期保存，所以第一更改 UI 的数据
-    // 已更改 sync 为更精确的操作
     public static void pushFilmToUI(ServerPlayerEntity player, String filmId, MapType filmData) {
         // 客户端接收后实际上会向 UI 同步数据
         theblocklab.bbsmcp.network.ServerNetwork.sendServerFilmDataPacket(player, filmId, filmData);

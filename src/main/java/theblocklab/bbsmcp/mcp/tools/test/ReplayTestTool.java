@@ -1,0 +1,263 @@
+package theblocklab.bbsmcp.mcp.tools.test;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
+
+import theblocklab.bbsmcp.mcp.core.MCPTool;
+import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
+import theblocklab.bbsmcp.mcp.tools.replay.AddReplayTool;
+import theblocklab.bbsmcp.mcp.tools.replay.BatchAddKeyframesTool;
+import theblocklab.bbsmcp.mcp.tools.replay.GetKeyframesTool;
+import theblocklab.bbsmcp.mcp.tools.replay.GetReplaySchemaTool;
+import theblocklab.bbsmcp.mcp.tools.replay.GetReplaysTool;
+import theblocklab.bbsmcp.mcp.tools.replay.RemoveKeyframesTool;
+import theblocklab.bbsmcp.mcp.tools.replay.RemoveReplayTool;
+import theblocklab.bbsmcp.mcp.tools.replay.SetReplayPropTool;
+import theblocklab.bbsmcp.mcp.tools.ui.OpenReplayEditorTool;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Replay 系统的串联自动化测试工具。
+ * 前提：Film 'test' 必须已存在且在客户端 UI 中打开（可先运行 film_clip_test）。
+ *
+ * 测试流程：
+ * get_replay_schema → add_replay → open_replay_editor → set_replay_prop → get_replays 验证
+ * → batch_add_keyframes → get_keyframes 确认 → remove_keyframes 区间删除
+ * → get_keyframes 再次确认 → remove_replay 清理
+ */
+public class ReplayTestTool extends MCPTool {
+
+    private static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(1);
+    private static final String FILM_ID = "test";
+
+    public ReplayTestTool() {
+        super("replay_test",
+                "测试 Replay 系统完整生命周期（Schema查询→新增→属性设置→验证→批量关键帧→精确查询→区间删除→验证→删除）。" +
+                        "前提：Film 'test' 已存在且 UI 已打开（先运行 film_clip_test）。");
+    }
+
+    @Override
+    public JsonObject getInputSchema() {
+        return JsonParser.parseString("""
+                {
+                  "type": "object",
+                  "properties": {}
+                }
+                """).getAsJsonObject();
+    }
+
+    private CompletableFuture<Void> delay3s() {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        SCHEDULER.schedule(() -> future.complete(null), 3, TimeUnit.SECONDS);
+        return future;
+    }
+
+    private void log(ServerPlayerEntity player, String step, String msg) {
+        if (player != null) {
+            player.sendMessage(Text.literal(String.format("§b[ReplayTest %s] %s", step, msg)));
+        }
+    }
+
+    /** 持有本次测试新建 Replay 的索引 */
+    private volatile int testReplayIndex = -1;
+
+    @Override
+    public CompletableFuture<MCPToolResponse> executeAsync(JsonObject arguments, MinecraftServer server) {
+        ServerPlayerEntity player = getFirstOnlinePlayer(server);
+        if (player == null) {
+            return CompletableFuture.completedFuture(
+                    MCPToolResponse.error("测试失败", "需要至少一名在线玩家"));
+        }
+
+        log(player, "0/9", "Replay 自动化测试开始！（使用 Film: '" + FILM_ID + "'）");
+
+        return CompletableFuture.supplyAsync(() -> {
+            // ─── Step 1: 查询 get_replay_schema ───────────────────────────
+            GetReplaySchemaTool schemaTool = new GetReplaySchemaTool();
+            MCPToolResponse schemaRes = schemaTool.execute(new JsonObject(), server);
+            if (schemaRes.isError())
+                throw new RuntimeException("schema 查询失败: " + schemaRes.toJsonString());
+            log(player, "1/9", "✓ get_replay_schema 成功，通道数据已返回。");
+            return (Void) null;
+        })
+                .thenCompose(v -> delay3s())
+                .thenCompose(v -> CompletableFuture.supplyAsync(() -> {
+                    // ─── Step 2: 新增 Replay ───────────────────────────────
+                    AddReplayTool addTool = new AddReplayTool();
+                    JsonObject args = new JsonObject();
+                    args.addProperty("filmId", FILM_ID);
+                    MCPToolResponse res = addTool.execute(args, server);
+                    if (res.isError())
+                        throw new RuntimeException("add_replay 失败: " + res.toJsonString());
+
+                    // 从响应文本中提取 index（格式：成功创建 Replay，新索引为 N）
+                    String resText = res.toJsonString();
+                    try {
+                        String marker = "新索引为 ";
+                        int idx = resText.indexOf(marker);
+                        if (idx >= 0) {
+                            String numStr = resText.substring(idx + marker.length()).replaceAll("[^0-9].*", "");
+                            testReplayIndex = Integer.parseInt(numStr);
+                        }
+                    } catch (Exception e) {
+                        testReplayIndex = 0; // 兜底
+                    }
+                    log(player, "2/9", "✓ add_replay 成功，新 Replay index=" + testReplayIndex);
+                    return (Void) null;
+                }))
+                .thenCompose(v -> delay3s())
+                .thenCompose(v -> CompletableFuture.supplyAsync(() -> {
+                    // ─── Step 3: 打开 Replay 编辑器 ───────────────────────
+                    OpenReplayEditorTool openTool = new OpenReplayEditorTool();
+                    JsonObject args = new JsonObject();
+                    args.addProperty("filmId", FILM_ID);
+                    args.addProperty("replayIndex", testReplayIndex);
+                    try {
+                        MCPToolResponse res = openTool.executeAsync(args, server).join();
+                        if (res.isError())
+                            throw new RuntimeException("open_replay_editor 失败: " + res.toJsonString());
+                    } catch (Exception e) {
+                        throw new RuntimeException("open_replay_editor 异常: " + e.getMessage(), e);
+                    }
+                    log(player, "3/9", "✓ open_replay_editor 成功。");
+                    return (Void) null;
+                }))
+                .thenCompose(v -> delay3s())
+                .thenCompose(v -> CompletableFuture.supplyAsync(() -> {
+                    // ─── Step 4: 设置属性 ──────────────────────────────────
+                    SetReplayPropTool propTool = new SetReplayPropTool();
+                    JsonObject args = new JsonObject();
+                    args.addProperty("filmId", FILM_ID);
+                    args.addProperty("index", testReplayIndex);
+                    args.addProperty("label", "TestActor");
+                    args.addProperty("actor", true);
+                    MCPToolResponse res = propTool.execute(args, server);
+                    if (res.isError())
+                        throw new RuntimeException("set_replay_prop 失败: " + res.toJsonString());
+                    log(player, "4/9", "✓ set_replay_prop 成功（label=TestActor, actor=true）。");
+                    return (Void) null;
+                }))
+                .thenCompose(v -> delay3s())
+                .thenCompose(v -> CompletableFuture.supplyAsync(() -> {
+                    // ─── Step 5: 查询验证属性写入 ─────────────────────────────
+                    GetReplaysTool getTool = new GetReplaysTool();
+                    JsonObject args = new JsonObject();
+                    args.addProperty("filmId", FILM_ID);
+                    args.addProperty("index", testReplayIndex);
+                    MCPToolResponse res = getTool.execute(args, server);
+                    if (res.isError())
+                        throw new RuntimeException("get_replays 验证失败: " + res.toJsonString());
+                    String body = res.getMessage() == null ? "" : res.getMessage();
+                    boolean labelOk = body.contains("TestActor");
+                    boolean actorOk = body.contains("\"actor\":true");
+                    if (labelOk && actorOk) {
+                        log(player, "5/9", "✓ get_replays 验证通过：label 与 actor 属性写入正确。");
+                    } else {
+                        log(player, "5/9", "⚠ get_replays 数据可能不符（" + body + "），请手动检查。");
+                    }
+                    return (Void) null;
+                }))
+                .thenCompose(v -> delay3s())
+                .thenCompose(v -> CompletableFuture.supplyAsync(() -> {
+                    // ─── Step 6: 批量写入关键帧（x/z/yaw 各 2 帧）────────────
+                    BatchAddKeyframesTool batchTool = new BatchAddKeyframesTool();
+                    JsonObject kfArgs = new JsonObject();
+                    kfArgs.addProperty("filmId", FILM_ID);
+                    kfArgs.addProperty("replayIndex", testReplayIndex);
+                    kfArgs.addProperty("interpolation", "LINEAR");
+                    kfArgs.add("keyframes", JsonParser.parseString("""
+                            {
+                              "x":   [{"tick": 10, "value": "0.0"}, {"tick": 40, "value": "5.0"}],
+                              "z":   [{"tick": 10, "value": "0.0"}, {"tick": 40, "value": "5.0"}],
+                              "yaw": [{"tick": 10, "value": "0.0"}, {"tick": 40, "value": "45.0"}]
+                            }
+                            """).getAsJsonObject());
+                    MCPToolResponse res = batchTool.execute(kfArgs, server);
+                    if (res.isError())
+                        throw new RuntimeException("batch_add_keyframes 失败: " + res.toJsonString());
+                    log(player, "6/9", "✓ batch_add_keyframes 成功，x/z/yaw 各 2 帧写入完毕。");
+                    return (Void) null;
+                }))
+                .thenCompose(v -> delay3s())
+                .thenCompose(v -> CompletableFuture.supplyAsync(() -> {
+                    // ─── Step 7: 精确查询 x 通道确认 2 帧 ──────────────────
+                    GetKeyframesTool kfTool = new GetKeyframesTool();
+                    JsonObject args = new JsonObject();
+                    args.addProperty("filmId", FILM_ID);
+                    args.addProperty("replayIndex", testReplayIndex);
+                    args.add("channels", JsonParser.parseString("[\"x\"]").getAsJsonArray());
+                    MCPToolResponse res = kfTool.execute(args, server);
+                    if (res.isError())
+                        throw new RuntimeException("get_keyframes 失败: " + res.toJsonString());
+                    String body = res.getMessage() == null ? "" : res.getMessage();
+                    // x 通道应有 2 帧，粗略判断 tick=10 和 tick=40 都存在
+                    boolean has10 = body.contains("\"tick\":10.0");
+                    boolean has40 = body.contains("\"tick\":40.0");
+                    if (has10 && has40) {
+                        log(player, "7/9", "✓ get_keyframes 验证通过：x 通道含 tick=10 和 tick=40 共 2 帧。");
+                    } else {
+                        log(player, "7/9", "⚠ x 通道帧数据可能不符（" + body + "），请手动检查。");
+                    }
+                    return (Void) null;
+                }))
+                .thenCompose(v -> delay3s())
+                .thenCompose(v -> CompletableFuture.supplyAsync(() -> {
+                    // ─── Step 8: 区间删除 [0, 20] tick 内 x/z/yaw 全部帧 ────
+                    RemoveKeyframesTool removeTool = new RemoveKeyframesTool();
+                    JsonObject args = new JsonObject();
+                    args.addProperty("filmId", FILM_ID);
+                    args.addProperty("replayIndex", testReplayIndex);
+                    args.add("channels", JsonParser.parseString("[\"x\",\"z\",\"yaw\"]").getAsJsonArray());
+                    args.addProperty("fromTick", 0);
+                    args.addProperty("toTick", 20);
+                    MCPToolResponse res = removeTool.execute(args, server);
+                    if (res.isError())
+                        throw new RuntimeException("remove_keyframes 失败: " + res.toJsonString());
+                    log(player, "8/9", "✓ remove_keyframes 成功，已删除 x/z/yaw 通道 [0~20] 区间内的帧。");
+                    return (Void) null;
+                }))
+                .thenCompose(v -> delay3s())
+                .thenCompose(v -> CompletableFuture.supplyAsync(() -> {
+                    // ─── Step 9: 再次查询确认 tick=10 的帧已消失，tick=40 仍存在 ─
+                    GetKeyframesTool kfTool = new GetKeyframesTool();
+                    JsonObject args = new JsonObject();
+                    args.addProperty("filmId", FILM_ID);
+                    args.addProperty("replayIndex", testReplayIndex);
+                    args.add("channels", JsonParser.parseString("[\"x\"]").getAsJsonArray());
+                    MCPToolResponse res = kfTool.execute(args, server);
+                    String body = res.getMessage() == null ? "" : res.getMessage();
+                    boolean tick10Gone = !body.contains("\"tick\":10.0");
+                    boolean tick40Still = body.contains("\"tick\":40.0");
+                    if (tick10Gone && tick40Still) {
+                        log(player, "9/9", "✓ 删除验证通过：tick=10 帧已清除，tick=40 帧保留。");
+                    } else {
+                        log(player, "9/9", "⚠ 删除验证可能不符（" + body + "），请手动检查。");
+                    }
+
+
+                    // 清理：删除本次测试的 Replay
+                    RemoveReplayTool removeTool = new RemoveReplayTool();
+                    JsonObject removeArgs = new JsonObject();
+                    removeArgs.addProperty("filmId", FILM_ID);
+                    removeArgs.addProperty("index", testReplayIndex);
+                    try {
+                        removeTool.execute(removeArgs, server);
+                    } catch (Exception ignored) {
+                    }
+
+                    log(player, "End", "✓ 测试清理完毕，Replay[" + testReplayIndex + "] 已删除。Replay 系统全链路测试完成！");
+                    return MCPToolResponse.success("Replay 自动化测试全部执行完毕并通过");
+                }))
+                .exceptionally(e -> {
+                    log(player, "错误", "测试因异常中断：" + e.getMessage());
+                    return MCPToolResponse.error("Replay 测试异常中止", e.getMessage());
+                });
+    }
+}

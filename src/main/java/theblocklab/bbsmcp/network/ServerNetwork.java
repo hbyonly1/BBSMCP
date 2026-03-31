@@ -24,6 +24,7 @@ public class ServerNetwork {
     // === UI Query & Command ===
     public static final Identifier CLIENT_PICK_CLIP = new Identifier("bbsmcp", "client_pick_clip");
     public static final Identifier CLIENT_OPEN_FILM_PANEL = new Identifier("bbsmcp", "client_open_film_panel");
+    public static final Identifier CLIENT_OPEN_REPLAY_EDITOR = new Identifier("bbsmcp", "client_open_replay_editor");
     public static final Identifier CLIENT_TOGGLE_PLAYBACK = new Identifier("bbsmcp", "client_toggle_playback");
     public static final Identifier CLIENT_CLOSE_UI = new Identifier("bbsmcp", "client_close_ui");
 
@@ -67,6 +68,19 @@ public class ServerNetwork {
 
         return ServerRequestBridge.request(player, CLIENT_OPEN_FILM_PANEL, buf -> {
             buf.writeString(filmId);
+        });
+    }
+
+    // 请求客户端打开指定的 replayEditor 面板的逻辑
+    public static CompletableFuture<Boolean> requestClientOpenReplayEditorPacket(ServerPlayerEntity player,
+            String filmId, int replayIndex) {
+        player.sendMessage(
+                Text.literal(String.format("§c[BBSMCP Server] 正在通过 Bridge 请求打开回放编辑器: filmId: %s, replayIndex: %d",
+                        filmId, replayIndex)));
+
+        return ServerRequestBridge.request(player, CLIENT_OPEN_REPLAY_EDITOR, buf -> {
+            buf.writeString(filmId);
+            buf.writeInt(replayIndex);
         });
     }
 

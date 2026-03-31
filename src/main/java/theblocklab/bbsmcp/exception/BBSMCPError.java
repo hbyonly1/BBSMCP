@@ -39,7 +39,13 @@ public enum BBSMCPError {
 
     // ── 参数校验相关 ─────────────────────────────────────────────────────────
     MISSING_PARAM("PARAM_001", "缺少必填参数 '%s'",
-            "请检查工具调用参数，确保所有 required 字段都已提供");
+            "请检查工具调用参数，确保所有 required 字段都已提供"),
+
+    // ── Replay 相关 ───────────────────────────────────────────────────────────
+    REPLAY_NOT_FOUND("REPLAY_001", "索引 %d 处不存在 Replay，当前 Film '%s' 共有 %d 个 Replay",
+            "请用 get_replays 确认当前 Replay 列表后再操作"),
+    REPLAY_CHANNEL_NOT_FOUND("REPLAY_002", "关键帧通道 '%s' 不存在于 Replay 的 ReplayKeyframes 中",
+            "请先调用 get_replay_schema 获取所有合法通道 ID，注意通道 ID 与 Java 字段名不完全一致");
 
     // ─────────────────────────────────────────────────────────────────────────
 

@@ -4,7 +4,8 @@ import theblocklab.bbsmcp.mcp.core.MCPToolProvider;
 
 public class TestMCPTools extends MCPToolProvider {
     public TestMCPTools() {
-        registerTool(new E2EWorkflowTestTool());
+        registerTool(new FilmClipTestTool());
+        registerTool(new ReplayTestTool());
         registerTool(new SetupEnvTestTool());
     }
 }
