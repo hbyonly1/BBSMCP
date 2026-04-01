@@ -1,4 +1,4 @@
-package theblocklab.bbsmcp.mcp.tools.replay;
+package theblocklab.bbsmcp.mcp.tools.replay.keyframes;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;

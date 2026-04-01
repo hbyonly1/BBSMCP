@@ -6,8 +6,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import theblocklab.bbsmcp.mcp.tools.clip.AddClipTool;
-import theblocklab.bbsmcp.mcp.tools.replay.BatchAddKeyframesTool;
 import theblocklab.bbsmcp.mcp.tools.replay.SetReplayPropTool;
+import theblocklab.bbsmcp.mcp.tools.replay.keyframes.BatchAddKeyframesTool;
 
 /**
  * 公共测试夹具构建工具。

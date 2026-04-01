@@ -37,6 +37,13 @@ public class ServerNetwork {
     public static final Identifier GENERATE_BUILDING_C2S = new Identifier("bbsmcp", "generate_building");
     public static final Identifier BUILDING_PROGRESS_S2C = new Identifier("bbsmcp", "building_progress");
 
+    // === Anchor 锚点系统 ===
+    public static final Identifier S2C_ANCHOR_LIST = new Identifier("bbsmcp", "s2c_anchor_list");
+    public static final Identifier S2C_ANCHOR_UPDATE = new Identifier("bbsmcp", "s2c_anchor_update");
+    public static final Identifier S2C_ANCHOR_TOGGLE_VISIBILITY = new Identifier("bbsmcp", "s2c_anchor_toggle_visibility");
+    public static final Identifier C2S_ANCHOR_CREATE = new Identifier("bbsmcp", "c2s_anchor_create");
+    public static final Identifier C2S_ANCHOR_REMOVE = new Identifier("bbsmcp", "c2s_anchor_remove");
+
     // === utils 相关 Identifier ===
     public static final Identifier OK = new Identifier("bbsmcp", "ok");
     public static final Identifier CLIENT_ERROR = new Identifier("bbsmcp", "client_error");

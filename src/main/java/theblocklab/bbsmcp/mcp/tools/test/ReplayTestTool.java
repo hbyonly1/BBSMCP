@@ -9,14 +9,14 @@ import net.minecraft.text.Text;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
 import theblocklab.bbsmcp.mcp.tools.replay.AddReplayTool;
-import theblocklab.bbsmcp.mcp.tools.replay.BatchAddKeyframesTool;
 import theblocklab.bbsmcp.mcp.tools.replay.GetKeyframesTool;
 import theblocklab.bbsmcp.mcp.tools.replay.GetReplaySchemaTool;
 import theblocklab.bbsmcp.mcp.tools.replay.GetReplaysTool;
-import theblocklab.bbsmcp.mcp.tools.replay.RemoveKeyframesTool;
 import theblocklab.bbsmcp.mcp.tools.replay.RemoveReplayTool;
 import theblocklab.bbsmcp.mcp.tools.replay.SetReplayPropTool;
-import theblocklab.bbsmcp.mcp.tools.replay.ShiftKeyframesTool;
+import theblocklab.bbsmcp.mcp.tools.replay.keyframes.BatchAddKeyframesTool;
+import theblocklab.bbsmcp.mcp.tools.replay.keyframes.RemoveKeyframesTool;
+import theblocklab.bbsmcp.mcp.tools.replay.keyframes.ShiftKeyframesTool;
 import theblocklab.bbsmcp.mcp.tools.ui.OpenReplayEditorTool;
 
 import java.util.concurrent.CompletableFuture;

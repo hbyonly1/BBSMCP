@@ -1,6 +1,10 @@
 package theblocklab.bbsmcp.mcp.tools.replay;
 
 import theblocklab.bbsmcp.mcp.core.MCPToolProvider;
+import theblocklab.bbsmcp.mcp.tools.replay.keyframes.AddKeyframeTool;
+import theblocklab.bbsmcp.mcp.tools.replay.keyframes.BatchAddKeyframesTool;
+import theblocklab.bbsmcp.mcp.tools.replay.keyframes.RemoveKeyframesTool;
+import theblocklab.bbsmcp.mcp.tools.replay.keyframes.ShiftKeyframesTool;
 
 public class ReplayMCPTools extends MCPToolProvider {
     public ReplayMCPTools() {
@@ -14,7 +18,7 @@ public class ReplayMCPTools extends MCPToolProvider {
         registerTool(new RemoveReplayTool());
         registerTool(new SetReplayPropTool());
 
-        // 关键帧操作
+        // keyframe
         registerTool(new AddKeyframeTool());
         registerTool(new BatchAddKeyframesTool());
         registerTool(new RemoveKeyframesTool());
