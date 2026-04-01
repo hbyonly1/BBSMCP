@@ -12,6 +12,7 @@ import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
 import theblocklab.bbsmcp.mcp.tools.clip.AddClipTool;
 import theblocklab.bbsmcp.mcp.tools.clip.GetClipsTool;
 import theblocklab.bbsmcp.mcp.tools.clip.RemoveClipTool;
+import theblocklab.bbsmcp.mcp.tools.clip.ShiftClipsByTickTool;
 import theblocklab.bbsmcp.mcp.tools.film.CreateFilmTool;
 import theblocklab.bbsmcp.mcp.tools.film.DeleteFilmTool;
 import theblocklab.bbsmcp.mcp.tools.ui.OpenFilmEditorTool;
@@ -130,7 +131,18 @@ public class FilmClipTestTool extends MCPTool {
                     } catch (Exception e) {
                         notifyPlayer(player, "4.5/10", "✓ 测试通过：成功拦截重叠 (" + e.getMessage() + ")");
                     }
-                    notifyPlayer(player, "4.9/10", "标准 Clips 注入完毕，重叠拦截测试通过。");
+                    notifyPlayer(player, "4.6/10", "标准 Clips 注入完毕，重叠拦截测试通过。");
+                    return delay3s();
+                })
+                .thenCompose(v -> {
+                    // Step 4.7: 测试刚才实现的批量平移 API
+                    ShiftClipsByTickTool shiftTool = new ShiftClipsByTickTool();
+                    JsonObject shiftArgs = new JsonObject();
+                    shiftArgs.addProperty("filmId", "test");
+                    shiftArgs.addProperty("startTick", 40); // 对 dolly 及其之后生效
+                    shiftArgs.addProperty("offsetTick", 20);
+                    shiftTool.execute(shiftArgs, server);
+                    notifyPlayer(player, "4.7/10", "✓ 批量平移测试：将 40 tick 以后的 Clip 后移 20 tick。");
                     return delay3s();
                 })
                 .thenCompose(v -> {

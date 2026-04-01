@@ -18,5 +18,6 @@ public class ReplayMCPTools extends MCPToolProvider {
         registerTool(new AddKeyframeTool());
         registerTool(new BatchAddKeyframesTool());
         registerTool(new RemoveKeyframesTool());
+        registerTool(new ShiftKeyframesTool());
     }
 }

@@ -4,6 +4,7 @@ import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
 import theblocklab.bbsmcp.film.FilmManagerAPI;
 import theblocklab.bbsmcp.film.clips.utils.ClipDataConverter;
+import theblocklab.bbsmcp.film.clips.utils.ClipShiftValidator;
 import theblocklab.bbsmcp.film.clips.utils.ClipValidationChecker;
 import theblocklab.bbsmcp.network.ServerNetwork;
 
@@ -104,7 +105,7 @@ public class ClipManagerAPI {
     public static String getClips(String filmId) {
         Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
 
-        com.google.gson.JsonArray array = new com.google.gson.JsonArray();
+        JsonArray array = new JsonArray();
         java.util.List<Clip> clips = film.camera.get();
         for (int i = 0; i < clips.size(); i++) {
             array.add(ClipDataConverter.convertClipToJson(clips.get(i), i));
@@ -131,7 +132,7 @@ public class ClipManagerAPI {
     public static String getClipsByTick(String filmId, int tick) {
         Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
 
-        com.google.gson.JsonArray array = new com.google.gson.JsonArray();
+        JsonArray array = new JsonArray();
         java.util.List<Clip> clipsForTick = film.camera.getClips(tick);
 
         // 注意：getClips(tick) 返回的是筛选后的片段，它的下标并不能直接体现它在原本数组的 index
@@ -191,5 +192,63 @@ public class ClipManagerAPI {
         int clipIndex = film.camera.getIndex(clip);
         ServerNetwork.sendPickClipPacket(player, filmId, clipIndex);
         return clip;
+    }
+
+    /**
+     * 将指定起始 tick 范围内的 Clip 在时间轴上进行偏移。
+     *
+     * @param player     操作玩家
+     * @param filmId     Film ID
+     * @param startTick  范围起始 tick
+     * @param endTick    范围结束 tick（-1 表示不限上限）
+     * @param offsetTick 偏移量（float）
+     */
+    public static void shiftClipsByTick(ServerPlayerEntity player, String filmId, int startTick, int endTick,
+            float offsetTick) {
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
+        List<Clip> clips = film.camera.get();
+
+        // 1. 物理规律先行：平移前进行批量碰撞预检
+        ClipShiftValidator.validateShift(clips, startTick, endTick, offsetTick);
+
+        // 2. 校验通过后再执行偏移
+        for (Clip clip : clips) {
+            int currentTick = (Integer) clip.tick.get();
+            int duration = (Integer) clip.duration.get();
+            // 只要剪辑的结束时间超过了 startTick，且起始时间没超过 endTick，就视为在范围内
+            if (currentTick + duration > startTick && (endTick < 0 || currentTick <= endTick)) {
+                clip.tick.set(Math.round((float) currentTick + offsetTick));
+            }
+        }
+
+        FilmManagerAPI.sync(player, filmId, film);
+    }
+
+    /**
+     * 将指定起始 tick 范围内的 Clip 在 3D 空间中进行坐标偏移。
+     *
+     * @param player    操作玩家
+     * @param filmId    Film ID
+     * @param startTick 范围起始 tick
+     * @param endTick   范围结束 tick（-1 表示不限上限）
+     * @param dx        X 轴偏移
+     * @param dy        Y 轴偏移
+     * @param dz        Z 轴偏移
+     */
+    public static void shiftClipsPosition(ServerPlayerEntity player, String filmId, int startTick, int endTick,
+            double dx, double dy, double dz) {
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
+        List<Clip> clips = film.camera.get();
+
+        for (Clip clip : clips) {
+            int currentTick = (Integer) clip.tick.get();
+            int duration = (Integer) clip.duration.get();
+            // 同理，空间偏移也应包含重叠的剪辑
+            if (currentTick + duration > startTick && (endTick < 0 || currentTick <= endTick)) {
+                clip.shift(dx, dy, dz);
+            }
+        }
+
+        FilmManagerAPI.sync(player, filmId, film);
     }
 }

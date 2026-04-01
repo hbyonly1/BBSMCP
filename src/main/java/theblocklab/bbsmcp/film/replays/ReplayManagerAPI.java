@@ -1,5 +1,6 @@
 package theblocklab.bbsmcp.film.replays;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.JsonArray;
@@ -278,6 +279,57 @@ public class ReplayManagerAPI {
                 if (shouldRemove) {
                     channel.remove(i);
                 }
+            }
+        }
+
+        FilmManagerAPI.sync(player, filmId, film);
+    }
+
+    /**
+     * 将指定 Replay 中指定通道在时间区间内的关键帧进行平移。
+     * 采用“安全平移协议”：将受影响的关键帧暂时从通道取出并重新插入，以利用引擎内置的排序机制。
+     *
+     * @param channels null 表示操作全部通道
+     * @param fromTick 区间起点
+     * @param toTick   区间终点，-1 表示不限
+     * @param offset   偏移量（float）
+     */
+    public static void shiftKeyframes(ServerPlayerEntity player, String filmId, int replayIndex,
+            List<String> channels, float fromTick, float toTick, float offset) {
+
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
+        mchorse.bbs_mod.film.replays.Replay replay = getReplay(film, filmId, replayIndex);
+
+        // 确定操作哪些通道
+        List<KeyframeChannel<?>> targets = new ArrayList<>();
+        if (channels == null || channels.isEmpty()) {
+            targets.addAll(getChannels(replay));
+        } else {
+            for (String id : channels) {
+                targets.add(getChannel(replay, id));
+            }
+        }
+
+        for (KeyframeChannel<?> channel : targets) {
+            List<? extends Keyframe<?>> list = channel.getKeyframes();
+            List<Keyframe<?>> toMove = new java.util.ArrayList<>();
+
+            // 1. 甄别并提取需要移动的关键帧（倒着删，防止索引塌缩）
+            for (int i = list.size() - 1; i >= 0; i--) {
+                Keyframe<?> kf = list.get(i);
+                float t = kf.getTick();
+                if (t >= fromTick && (toTick < 0 || t <= toTick)) {
+                    toMove.add(kf);
+                    channel.remove(i);
+                }
+            }
+
+            // 2. 将修改过 tick 的关键帧重新插回（使用 insert 保证有序）
+            for (Keyframe<?> kf : toMove) {
+                // 修改 tick 后插回
+                kf.setTick(kf.getTick() + offset);
+                // 复用 parseValue 模式来绕过通配符 capture 限制
+                channel.insert(kf.getTick(), parseValue(channel, kf.getValue().toString()));
             }
         }
 

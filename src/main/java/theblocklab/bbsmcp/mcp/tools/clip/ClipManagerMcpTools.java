@@ -12,6 +12,8 @@ public class ClipManagerMCPTools extends MCPToolProvider {
         registerTool(new RemoveClipTool());
         registerTool(new GetClipsTool());
         registerTool(new GetClipSchemaTool());
+        registerTool(new ShiftClipsByTickTool());
+        registerTool(new ShiftClipsPositionTool());
     }
 
 }
