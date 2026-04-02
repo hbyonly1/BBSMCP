@@ -5,7 +5,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
+import theblocklab.bbsmcp.network.ServerNetwork;
 
 /**
  * 客户端锚点网络处理。
@@ -13,11 +15,26 @@ import net.minecraft.network.PacketByteBuf;
  */
 @Environment(EnvType.CLIENT)
 public class AnchorClientNetwork {
+    public static void setup() {
+        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.S2C_ANCHOR_LIST,
+                (client, handler, buf, responseSender) -> {
+                    AnchorClientNetwork.handleAnchorListPacket(buf);
+                });
+        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.S2C_ANCHOR_UPDATE,
+                (client, handler, buf, responseSender) -> {
+                    AnchorClientNetwork.handleAnchorUpdatePacket(buf);
+                });
+        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.S2C_ANCHOR_TOGGLE_VISIBILITY,
+                (client, handler, buf, responseSender) -> {
+                    AnchorClientNetwork.handleToggleVisibilityPacket();
+                });
+
+    }
 
     private static final Gson GSON = new Gson();
 
     /** 处理全量列表下发 */
-    public static void handleAnchorList(PacketByteBuf buf) {
+    public static void handleAnchorListPacket(PacketByteBuf buf) {
         String json = buf.readString();
         AnchorClientRepository.clear();
         try {
@@ -34,7 +51,7 @@ public class AnchorClientNetwork {
     }
 
     /** 处理增量更新（UPDATE 或 REMOVE） */
-    public static void handleAnchorUpdate(PacketByteBuf buf) {
+    public static void handleAnchorUpdatePacket(PacketByteBuf buf) {
         String type = buf.readString();
         String json = buf.readString();
         try {
@@ -52,7 +69,7 @@ public class AnchorClientNetwork {
     }
 
     /** 切换全局可见性 */
-    public static void handleToggleVisibility() {
+    public static void handleToggleVisibilityPacket() {
         AnchorClientRepository.toggleVisibility();
     }
 }

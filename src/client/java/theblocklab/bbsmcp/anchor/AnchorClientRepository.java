@@ -37,16 +37,16 @@ public class AnchorClientRepository {
 
     // ────────── 查询 ──────────
 
-    public static boolean isVisible() {
-        return visible;
-    }
-
     public static Collection<Anchor> getAll() {
         return Collections.unmodifiableCollection(anchors.values());
     }
 
     public static Anchor get(int id) {
         return anchors.get(id);
+    }
+
+    public static boolean isVisible() {
+        return visible;
     }
 
     public static void toggleVisibility() {

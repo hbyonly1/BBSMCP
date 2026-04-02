@@ -11,7 +11,6 @@ import net.minecraft.text.Text;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import theblocklab.bbsmcp.anchor.AnchorClientNetwork;
 
 import mchorse.bbs_mod.BBSMod;
 import mchorse.bbs_mod.BBSModClient;
@@ -75,22 +74,6 @@ public class ClientNetwork {
                 (client, handler, buf, responseSender) -> {
                     handleClientGetCursorPacket(client, buf);
                 });
-
-        // === Anchor 锚点系统 ===
-        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.S2C_ANCHOR_LIST,
-                (client, handler, buf, responseSender) -> {
-                    AnchorClientNetwork.handleAnchorList(buf);
-                });
-        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.S2C_ANCHOR_UPDATE,
-                (client, handler, buf, responseSender) -> {
-                    AnchorClientNetwork.handleAnchorUpdate(buf);
-                });
-        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.S2C_ANCHOR_TOGGLE_VISIBILITY,
-                (client, handler, buf, responseSender) -> {
-                    AnchorClientNetwork.handleToggleVisibility();
-                });
-
-        // === AI building 相关逻辑 ===
     }
 
     // === utils ===

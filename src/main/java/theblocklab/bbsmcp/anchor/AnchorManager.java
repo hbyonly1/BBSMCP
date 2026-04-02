@@ -72,16 +72,6 @@ public class AnchorManager {
         posToId.put(anchor.pos, anchor.id);
     }
 
-    /** 已弃用，请使用 create。如果是从旧数据恢复，可使用该方法。 */
-    @Deprecated
-    public void add(Anchor anchor) {
-        synchronized (anchors) {
-            addInternal(anchor);
-            if (anchor.id >= nextId) nextId = anchor.id + 1;
-            saveAsync();
-        }
-    }
-
     public boolean remove(int id) {
         synchronized (anchors) {
             Anchor removed = anchors.remove(id);

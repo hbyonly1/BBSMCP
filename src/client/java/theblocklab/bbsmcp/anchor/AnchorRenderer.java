@@ -27,7 +27,7 @@ import org.joml.Matrix4f;
 @Environment(EnvType.CLIENT)
 public class AnchorRenderer {
 
-    private static final float EXPAND = 0.002f; // 线框轻微扩大，防止 z-fighting
+    private static final float EXPAND = 0.006f; // 线框轻微扩大，防止 z-fighting
 
     public static void register() {
         WorldRenderEvents.LAST.register(AnchorRenderer::render);
@@ -46,8 +46,7 @@ public class AnchorRenderer {
         ItemStack held = client.player.getMainHandStack();
         boolean holdingWand = !held.isEmpty() && held.getItem() instanceof AnchorItem;
 
-        if (holdingWand && client.crosshairTarget != null
-                && client.crosshairTarget.getType() == HitResult.Type.BLOCK) {
+        if (holdingWand && client.crosshairTarget != null){
             BlockHitResult hit = (BlockHitResult) client.crosshairTarget;
             BlockPos target = hit.getBlockPos();
 
@@ -143,18 +142,23 @@ public class AnchorRenderer {
             float r, float g, float b, float a) {
         Matrix4f m = matrices.peek().getPositionMatrix();
         // 6 个面，每个面 4 个顶点（调用 addVertex 不赋予 UV，DebugFilledBox 格式简单）
-        // 底面 (-Y)
-        face(consumer, m,x0,y0,z0, x0,y0,z1, x1,y0,z1, x1,y0,z0, r,g,b,a);
-        // 顶面 (+Y)
-        face(consumer, m,x0,y1,z0, x1,y1,z0, x1,y1,z1, x0,y1,z1, r,g,b,a);
+        // // 底面 (-Y)
+        // face(consumer, m,x0,y0,z0, x0,y0,z1, x1,y0,z1, x1,y0,z0, r,g,b,a);
+        // // 顶面 (+Y)
+        // face(consumer, m,x0,y1,z0, x1,y1,z0, x1,y1,z1, x0,y1,z1, r,g,b,a);
         // 前面 (-Z)
-        face(consumer, m,x0,y0,z0, x1,y0,z0, x1,y1,z0, x0,y1,z0, r,g,b,a);
+        //face(consumer, m,x0,y0,z0, x1,y0,z0, x1,y1,z0, x0,y1,z0, r,g,b,a);
+        consumer.vertex(m, x0, y0, z0).color(r, g, b, a).next();
+        consumer.vertex(m, x0, y1, z0).color(r, g, b, a).next();
+        consumer.vertex(m, x1, y1, z0).color(r, g, b, a).next();
+        // consumer.vertex(m, x1, y0, z0).color(r, g, b, a).next();
+        // consumer.vertex(m, x0, y0, z0).color(r, g, b, a).next();
         // 后面 (+Z)
-        face(consumer, m,x0,y0,z1, x0,y1,z1, x1,y1,z1, x1,y0,z1, r,g,b,a);
-        // 左面 (-X)
-        face(consumer, m,x0,y0,z0, x0,y1,z0, x0,y1,z1, x0,y0,z1, r,g,b,a);
-        // 右面 (+X)
-        face(consumer, m, x1,y0,z0, x1,y0,z1, x1,y1,z1, x1,y1,z0, r,g,b,a);
+        //face(consumer, m,x0,y0,z1, x0,y1,z1, x1,y1,z1, x1,y0,z1, r,g,b,a);
+        // // 左面 (-X)
+        // face(consumer, m,x0,y0,z0, x0,y1,z0, x0,y1,z1, x0,y0,z1, r,g,b,a);
+        // // 右面 (+X)
+        // face(consumer, m,x1,y0,z0, x1,y0,z1, x1,y1,z1, x1,y1,z0, r,g,b,a);
     }
 
     private static void face(VertexConsumer consumer, Matrix4f m,
@@ -165,6 +169,7 @@ public class AnchorRenderer {
         consumer.vertex(m, x1, y1, z1).color(r, g, b, a).next();
         consumer.vertex(m, x2, y2, z2).color(r, g, b, a).next();
         consumer.vertex(m, x3, y3, z3).color(r, g, b, a).next();
+        consumer.vertex(m, x0, y0, z0).color(r, g, b, a).next();
     }
 
     /** 绘制方块线框（12 条边） */

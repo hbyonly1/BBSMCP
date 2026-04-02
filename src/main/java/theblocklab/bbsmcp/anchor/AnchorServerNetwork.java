@@ -42,7 +42,7 @@ public class AnchorServerNetwork {
                 
                 PENDING_INPUT.put(player.getUuid(), pos);
                 player.sendMessage(Text.literal("§a[BBSMCP Anchor] 锚点「" + defaultName + "」(ID:" + anchor.id + ") 已创建。"));
-                player.sendMessage(Text.literal("§b[BBSMCP Anchor] 请在聊天栏输入锚点描述，或输入 §f/§b 跳过："));
+                player.sendMessage(Text.literal("§b[BBSMCP Anchor] 请在聊天栏输入锚点描述，或输入 §fs§b 跳过："));
                 
                 sendAnchorUpdatePacket(player, anchor);
             }
@@ -70,7 +70,7 @@ public class AnchorServerNetwork {
         if (!PENDING_INPUT.containsKey(uuid)) return false;
 
         BlockPos pos = PENDING_INPUT.remove(uuid);
-        if ("/".equals(content.trim())) {
+        if ("s".equals(content.trim())) {
             sender.sendMessage(Text.literal("§7[BBSMCP Anchor] 已跳过描述输入。"));
         } else {
             AnchorManager.INSTANCE.updateAt(pos, null, content, null);
