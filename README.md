@@ -4,9 +4,10 @@ BBSMCP 是一个连接 Minecraft **Blockbuster Studio(BBS)** 模组的 **Model C
 
 ## 项目特性
 
+-   **MCP 生态集成**：整合并封装 BBS 内部 API 以实现标准化的 MCP Tools。
 -   **影片及相关管理**：支持对 Film、Clip、Replay 的增删改查。
 -   **关键帧控制**：可批量写入、删除或平移任意 Channel 的 Keyframe。
--   **MCP 生态集成**：整合并封装 BBS 内部 API 以实现标准化的 MCP Tools。
+-   **可视化锚点**：可标记世界中的任意位置并附加信息，帮助 AI 理解世界场景、控制 replay 动作。
 -   **自动化测试套件**：内置 `film_clip_test`、`replay_test` 等工具，可验证从服务端逻辑到客户端渲染的全链路流程。
 
 ## 项目架构 (Source Structure)
@@ -25,7 +26,6 @@ theblocklab.bbsmcp
 
 ## 待验证或开发功能
 
-* 增加可视化锚点系统，可标记世界中的任意位置并附加信息，帮助 AI 理解场景或控制 replay 动作。
 * 能否通过自然语言为 replay 实现理想中的精细动画控制。
 * 运动循环 Motion Cycle：通过预先录制的真实动作库来生成 replay 动画。
 * 搭建动画环境：
