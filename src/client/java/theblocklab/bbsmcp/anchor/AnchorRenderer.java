@@ -13,7 +13,6 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
@@ -35,7 +34,8 @@ public class AnchorRenderer {
 
     private static void render(WorldRenderContext context) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || client.world == null) return;
+        if (client.player == null || client.world == null)
+            return;
 
         MatrixStack matrices = context.matrixStack();
         VertexConsumerProvider consumers = context.consumers();
@@ -46,7 +46,7 @@ public class AnchorRenderer {
         ItemStack held = client.player.getMainHandStack();
         boolean holdingWand = !held.isEmpty() && held.getItem() instanceof AnchorItem;
 
-        if (holdingWand && client.crosshairTarget != null){
+        if (holdingWand && client.crosshairTarget != null) {
             BlockHitResult hit = (BlockHitResult) client.crosshairTarget;
             BlockPos target = hit.getBlockPos();
 
@@ -58,7 +58,7 @@ public class AnchorRenderer {
 
             // 绘制蓝色半透明填充（6 个面）
             if (consumers != null) {
-                VertexConsumer faceConsumer = consumers.getBuffer(RenderLayer.getDebugFilledBox());
+                VertexConsumer faceConsumer = consumers.getBuffer(RenderLayer.getGuiOverlay());
                 drawFilledBox(matrices, faceConsumer, -EXPAND, -EXPAND, -EXPAND,
                         1 + EXPAND, 1 + EXPAND, 1 + EXPAND, 0.2f, 0.5f, 1.0f, 0.3f);
             }
@@ -66,6 +66,11 @@ public class AnchorRenderer {
             // 绘制蓝色线框
             if (consumers != null) {
                 VertexConsumer lineConsumer = consumers.getBuffer(RenderLayer.getLines());
+                // 用于 debug 的可视坐标轴，和调试信息内的一致
+                // Matrix4f m = matrices.peek().getPositionMatrix();
+                // edge(lineConsumer, m, 0, 0, 0, 1.5f, 0, 0, 1, 0, 0, 1); // X
+                // edge(lineConsumer, m, 0, 0, 0, 0, 1.5f, 0, 0, 1, 0, 1); // Y
+                // edge(lineConsumer, m, 0, 0, 0, 0, 0, 1.5f, 0, 0, 1, 1); // Z
                 drawOutlineBox(matrices, lineConsumer, -EXPAND, -EXPAND, -EXPAND,
                         1 + EXPAND, 1 + EXPAND, 1 + EXPAND, 0.3f, 0.6f, 1.0f, 1.0f);
             }
@@ -73,8 +78,10 @@ public class AnchorRenderer {
         }
 
         // ── 2. 渲染所有锚点 ──
-        if (!AnchorClientRepository.isVisible()) return;
-        if (consumers == null) return;
+        if (!AnchorClientRepository.isVisible())
+            return;
+        if (consumers == null)
+            return;
 
         TextRenderer textRenderer = client.textRenderer;
 
@@ -135,40 +142,44 @@ public class AnchorRenderer {
 
     /**
      * 绘制半透明填充盒（使用 getDebugFilledBox 渲染层）。
-     * 注意：该渲染层本身支持透明度。
      */
     private static void drawFilledBox(MatrixStack matrices, VertexConsumer consumer,
             float x0, float y0, float z0, float x1, float y1, float z1,
             float r, float g, float b, float a) {
         Matrix4f m = matrices.peek().getPositionMatrix();
-        // 6 个面，每个面 4 个顶点（调用 addVertex 不赋予 UV，DebugFilledBox 格式简单）
-        // // 底面 (-Y)
-        // face(consumer, m,x0,y0,z0, x0,y0,z1, x1,y0,z1, x1,y0,z0, r,g,b,a);
-        // // 顶面 (+Y)
-        // face(consumer, m,x0,y1,z0, x1,y1,z0, x1,y1,z1, x0,y1,z1, r,g,b,a);
+
+        // 底面 (-Y)
+        face(consumer, m, x0, y0, z0, x0, y0, z1, x1, y0, z1, x1, y0, z0, r, g, b, a);
+        // 顶面 (+Y)
+        face(consumer, m, x0, y1, z0, x1, y1, z0, x1, y1, z1, x0, y1, z1, r, g, b, a);
         // 前面 (-Z)
-        //face(consumer, m,x0,y0,z0, x1,y0,z0, x1,y1,z0, x0,y1,z0, r,g,b,a);
-        consumer.vertex(m, x0, y0, z0).color(r, g, b, a).next();
-        consumer.vertex(m, x0, y1, z0).color(r, g, b, a).next();
-        consumer.vertex(m, x1, y1, z0).color(r, g, b, a).next();
-        // consumer.vertex(m, x1, y0, z0).color(r, g, b, a).next();
-        // consumer.vertex(m, x0, y0, z0).color(r, g, b, a).next();
+        face(consumer, m, x0, y0, z0, x1, y0, z0, x1, y1, z0, x0, y1, z0, r, g, b, a);
         // 后面 (+Z)
-        //face(consumer, m,x0,y0,z1, x0,y1,z1, x1,y1,z1, x1,y0,z1, r,g,b,a);
-        // // 左面 (-X)
-        // face(consumer, m,x0,y0,z0, x0,y1,z0, x0,y1,z1, x0,y0,z1, r,g,b,a);
-        // // 右面 (+X)
-        // face(consumer, m,x1,y0,z0, x1,y0,z1, x1,y1,z1, x1,y1,z0, r,g,b,a);
+        face(consumer, m, x0, y0, z1, x0, y1, z1, x1, y1, z1, x1, y0, z1, r, g, b, a);
+        // 左面 (-X)
+        face(consumer, m, x0, y0, z0, x0, y1, z0, x0, y1, z1, x0, y0, z1, r, g, b, a);
+        // 右面 (+X)
+        face(consumer, m, x1, y0, z0, x1, y0, z1, x1, y1, z1, x1, y1, z0, r, g, b, a);
     }
 
     private static void face(VertexConsumer consumer, Matrix4f m,
             float x0, float y0, float z0, float x1, float y1, float z1,
             float x2, float y2, float z2, float x3, float y3, float z3,
             float r, float g, float b, float a) {
+        // DEBUG_FILLED_BOX 使用 DrawMode.TRIANGLE_STRIP，绘制面要按照 Z 字形 (Zig-Zag)
+        // 而 GUI_OVERLAY 使用 DrawMode.QUADS
+        // 两者都默认启用 Culling，由于 Winding Order 的影响，导致面显示不全
+        // 故需要绘制两次
+        // 选择 GUI_OVERLAY 是因为其缓冲区较小，节省性能
+        // 具体信息查看 RenderLayer.class
         consumer.vertex(m, x0, y0, z0).color(r, g, b, a).next();
         consumer.vertex(m, x1, y1, z1).color(r, g, b, a).next();
         consumer.vertex(m, x2, y2, z2).color(r, g, b, a).next();
         consumer.vertex(m, x3, y3, z3).color(r, g, b, a).next();
+
+        consumer.vertex(m, x3, y3, z3).color(r, g, b, a).next();
+        consumer.vertex(m, x2, y2, z2).color(r, g, b, a).next();
+        consumer.vertex(m, x1, y1, z1).color(r, g, b, a).next();
         consumer.vertex(m, x0, y0, z0).color(r, g, b, a).next();
     }
 
@@ -197,6 +208,9 @@ public class AnchorRenderer {
     private static void edge(VertexConsumer consumer, Matrix4f m,
             float x0, float y0, float z0, float x1, float y1, float z1,
             float r, float g, float b, float a) {
+        // RenderLayer.getLines() 格式要求：Position, Color, Normal
+        // 缺少 Normal 会导致 java.lang.IllegalStateException: Not filled all elements of the
+        // vertex
         consumer.vertex(m, x0, y0, z0).color(r, g, b, a).normal(0, 1, 0).next();
         consumer.vertex(m, x1, y1, z1).color(r, g, b, a).normal(0, 1, 0).next();
     }
