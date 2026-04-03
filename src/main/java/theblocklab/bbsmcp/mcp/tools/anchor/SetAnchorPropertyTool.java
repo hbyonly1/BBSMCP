@@ -4,9 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import theblocklab.bbsmcp.anchor.Anchor;
-import theblocklab.bbsmcp.anchor.AnchorManager;
-import theblocklab.bbsmcp.anchor.AnchorServerNetwork;
+import theblocklab.bbsmcp.anchor.AnchorManagerAPI;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
@@ -44,20 +42,16 @@ public class SetAnchorPropertyTool extends MCPTool {
         String color = arguments.has("color") && !arguments.get("color").isJsonNull()
                 ? arguments.get("color").getAsString() : null;
 
-        boolean updated = AnchorManager.INSTANCE.update(id, name, description, color);
+        ServerPlayerEntity player = getFirstOnlinePlayer(server);
+        if (player == null) 
+            return MCPToolResponse.error(BBSMCPError.PLAYER_NOT_ONLINE.format(), BBSMCPError.PLAYER_NOT_ONLINE.getHint());
+        
+        boolean updated = AnchorManagerAPI.INSTANCE.update(player, id, name, description, color);
         if (!updated) {
             return MCPToolResponse.error(
                     String.format("ID 为 %d 的锚点不存在。", id),
                     "请先使用 get_anchors 确认 ID 是否正确。");
         }
-
-        // 同步给在线玩家
-        ServerPlayerEntity player = getFirstOnlinePlayer(server);
-        if (player == null) 
-            return MCPToolResponse.error(BBSMCPError.PLAYER_NOT_ONLINE.format(), BBSMCPError.PLAYER_NOT_ONLINE.getHint());
-        
-        Anchor anchor = AnchorManager.INSTANCE.get(id);
-        AnchorServerNetwork.sendAnchorUpdatePacket(player, anchor);
 
         return MCPToolResponse.success(String.format("ID 为 %d 的锚点属性已更新。", id));
     }

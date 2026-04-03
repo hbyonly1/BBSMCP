@@ -3,14 +3,12 @@ package theblocklab.bbsmcp.anchor;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketByteBuf;
@@ -35,12 +33,19 @@ import java.util.UUID;
 public class AnchorClientEvent {
 
     /** key=playerUUID, value=待删除确认的方块坐标 */
-    private static final Map<UUID, BlockPos> PENDING_DELETE = new HashMap<>();
+    static final Map<UUID, BlockPos> PENDING_DELETE = new HashMap<>();
     /** key=playerUUID, value=待创建确认的方块坐标 */
-    private static final Map<UUID, BlockPos> PENDING_CREATE = new HashMap<>();
+    static final Map<UUID, BlockPos> PENDING_CREATE = new HashMap<>();
     private static boolean lastPressed = false;
 
     public static void register() {
+        // 客户端加入世界时，请求全量同步锚点
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            client.execute(() -> {
+                ClientPlayNetworking.send(ServerNetwork.C2S_ANCHOR_SYNC_REQUEST, PacketByteBufs.create());
+            });
+        });
+
         // 左键点击空气
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null) return;

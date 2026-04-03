@@ -43,6 +43,7 @@ public class ServerNetwork {
     public static final Identifier S2C_ANCHOR_TOGGLE_VISIBILITY = new Identifier("bbsmcp", "s2c_anchor_toggle_visibility");
     public static final Identifier C2S_ANCHOR_CREATE = new Identifier("bbsmcp", "c2s_anchor_create");
     public static final Identifier C2S_ANCHOR_REMOVE = new Identifier("bbsmcp", "c2s_anchor_remove");
+    public static final Identifier C2S_ANCHOR_SYNC_REQUEST = new Identifier("bbsmcp", "c2s_anchor_sync_request");
 
     // === utils 相关 Identifier ===
     public static final Identifier OK = new Identifier("bbsmcp", "ok");

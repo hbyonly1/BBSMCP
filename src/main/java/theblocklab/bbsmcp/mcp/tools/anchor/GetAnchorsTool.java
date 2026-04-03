@@ -3,7 +3,7 @@ package theblocklab.bbsmcp.mcp.tools.anchor;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.server.MinecraftServer;
-import theblocklab.bbsmcp.anchor.AnchorManager;
+import theblocklab.bbsmcp.anchor.AnchorManagerAPI;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
 
@@ -23,7 +23,7 @@ public class GetAnchorsTool extends MCPTool {
 
     @Override
     public MCPToolResponse execute(JsonObject arguments, MinecraftServer server) {
-        String json = AnchorManager.INSTANCE.toJsonString();
+        String json = AnchorManagerAPI.INSTANCE.getAllAsJson();
         return MCPToolResponse.success(json, "可使用 add_anchor / remove_anchor / set_anchor_property 管理锚点。");
     }
 }

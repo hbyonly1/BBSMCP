@@ -17,6 +17,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 
+import java.util.UUID;
+
 /**
  * 客户端锚点渲染器。
  * 在 WorldRenderEvents.LAST 阶段执行：
@@ -24,12 +26,12 @@ import org.joml.Matrix4f;
  * 2) 渲染所有缓存的锚点（彩色线框 + 浮空文字）
  */
 @Environment(EnvType.CLIENT)
-public class AnchorRenderer {
+public class AnchorClientRenderer {
 
     private static final float EXPAND = 0.006f; // 线框轻微扩大，防止 z-fighting
 
     public static void register() {
-        WorldRenderEvents.LAST.register(AnchorRenderer::render);
+        WorldRenderEvents.LAST.register(AnchorClientRenderer::render);
     }
 
     private static void render(WorldRenderContext context) {
@@ -56,15 +58,33 @@ public class AnchorRenderer {
                     target.getY() - camPos.y,
                     target.getZ() - camPos.z);
 
-            // 绘制蓝色半透明填充（6 个面）
+            // 绘制半透明填充（6 个面）
             if (consumers != null) {
+                float r = 0.2f, g = 0.5f, b = 1.0f, a = 0.3f; // 默认蓝色
+                
+                UUID uuid = client.player.getUuid();
+                if (target.equals(AnchorClientEvent.PENDING_CREATE.get(uuid))) {
+                    r = 0.2f; g = 1.0f; b = 0.2f; // 绿色 (确认创建)
+                } else if (target.equals(AnchorClientEvent.PENDING_DELETE.get(uuid))) {
+                    r = 1.0f; g = 0.2f; b = 0.2f; // 红色 (确认删除)
+                }
+
                 VertexConsumer faceConsumer = consumers.getBuffer(RenderLayer.getGuiOverlay());
                 drawFilledBox(matrices, faceConsumer, -EXPAND, -EXPAND, -EXPAND,
-                        1 + EXPAND, 1 + EXPAND, 1 + EXPAND, 0.2f, 0.5f, 1.0f, 0.3f);
+                        1 + EXPAND, 1 + EXPAND, 1 + EXPAND, r, g, b, a);
             }
 
-            // 绘制蓝色线框
+            // 绘制线框
             if (consumers != null) {
+                float r = 0.3f, g = 0.6f, b = 1.0f, a = 1.0f; // 默认浅蓝
+                
+                UUID uuid = client.player.getUuid();
+                if (target.equals(AnchorClientEvent.PENDING_CREATE.get(uuid))) {
+                    r = 0.3f; g = 1.0f; b = 0.3f; // 浅绿
+                } else if (target.equals(AnchorClientEvent.PENDING_DELETE.get(uuid))) {
+                    r = 1.0f; g = 0.3f; b = 0.3f; // 浅红
+                }
+
                 VertexConsumer lineConsumer = consumers.getBuffer(RenderLayer.getLines());
                 // 用于 debug 的可视坐标轴，和调试信息内的一致
                 // Matrix4f m = matrices.peek().getPositionMatrix();
@@ -72,7 +92,7 @@ public class AnchorRenderer {
                 // edge(lineConsumer, m, 0, 0, 0, 0, 1.5f, 0, 0, 1, 0, 1); // Y
                 // edge(lineConsumer, m, 0, 0, 0, 0, 0, 1.5f, 0, 0, 1, 1); // Z
                 drawOutlineBox(matrices, lineConsumer, -EXPAND, -EXPAND, -EXPAND,
-                        1 + EXPAND, 1 + EXPAND, 1 + EXPAND, 0.3f, 0.6f, 1.0f, 1.0f);
+                        1 + EXPAND, 1 + EXPAND, 1 + EXPAND, r, g, b, a);
             }
             matrices.pop();
         }

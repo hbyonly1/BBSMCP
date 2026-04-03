@@ -28,6 +28,7 @@ public class AnchorServerNetwork {
         // 注册 C2S 接收器
         ServerPlayNetworking.registerGlobalReceiver(ServerNetwork.C2S_ANCHOR_CREATE, AnchorServerNetwork::onC2SCreate);
         ServerPlayNetworking.registerGlobalReceiver(ServerNetwork.C2S_ANCHOR_REMOVE, AnchorServerNetwork::onC2SRemove);
+        ServerPlayNetworking.registerGlobalReceiver(ServerNetwork.C2S_ANCHOR_SYNC_REQUEST, AnchorServerNetwork::onC2SSyncRequest);
     }
 
     // ────────── C2S 处理函数 ──────────
@@ -60,6 +61,12 @@ public class AnchorServerNetwork {
                 player.sendMessage(Text.literal("§c[BBSMCP Anchor] 锚点「" + name + "」(ID:" + id + ") 已删除。"));
                 sendAnchorRemovePacket(player, id);
             }
+        });
+    }
+
+    private static void onC2SSyncRequest(MinecraftServer server, ServerPlayerEntity player, ServerPlayNetworkHandler handler, PacketByteBuf buf, net.fabricmc.fabric.api.networking.v1.PacketSender responseSender) {
+        server.execute(() -> {
+            sendAnchorListPacket(player);
         });
     }
 
@@ -104,7 +111,7 @@ public class AnchorServerNetwork {
     /** 为指定玩家发送全量锚点列表 */
     public static void sendAnchorListPacket(ServerPlayerEntity player) {
         PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeString(AnchorManager.INSTANCE.toJsonString());
+        buf.writeString(AnchorManagerAPI.INSTANCE.getAllAsJson());
         ServerPlayNetworking.send(player, ServerNetwork.S2C_ANCHOR_LIST, buf);
     }
 }

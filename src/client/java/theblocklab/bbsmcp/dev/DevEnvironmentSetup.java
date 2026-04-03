@@ -15,10 +15,22 @@ import net.minecraft.text.Text;
 public class DevEnvironmentSetup {
 
     private static boolean hasAutoPaused = false;
+    private static boolean isWindowResized = false;
 
     public static void register() {
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
             ClientTickEvents.END_CLIENT_TICK.register(client -> {
+                // 仅在 Windows 下调整窗口大小
+                if (!isWindowResized && client.getWindow() != null) {
+                    String os = System.getProperty("os.name").toLowerCase();
+                    if (os.contains("win")) {
+                        client.getWindow().setWindowedSize(1920, 1080);
+                        // 通知 Minecraft 窗口大小已变动，以重新计算缩放比等
+                        client.onResolutionChanged();
+                    }
+                    isWindowResized = true;
+                }
+
                 // 等待玩家成功加载进入单人世界，并且确保当前没有打开任何 UI
                 if (!hasAutoPaused && client.player != null && client.world != null && client.currentScreen == null) {
                     hasAutoPaused = true;

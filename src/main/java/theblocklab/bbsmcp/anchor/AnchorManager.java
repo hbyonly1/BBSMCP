@@ -35,7 +35,6 @@ public class AnchorManager {
     /** 辅助索引：BlockPos -> ID */
     private final Map<BlockPos, Integer> posToId = new HashMap<>();
     
-    private int nextId = 1;
     private Path savePath;
 
     private AnchorManager() {}
@@ -53,12 +52,29 @@ public class AnchorManager {
         ServerLifecycleEvents.SERVER_STARTED.register(INSTANCE::onServerStarted);
     }
 
+    /** 内部添加（从文件读取时使用） */
+    private void addInternal(Anchor anchor) {
+        anchors.put(anchor.id, anchor);
+        posToId.put(anchor.pos, anchor.id);
+    }
+
+    protected String toJsonString() {
+        JsonArray array = new JsonArray();
+        for (Anchor anchor : anchors.values()) {
+            array.add(anchor.toJson());
+        }
+        return array.toString();
+    }
+    
     // ────────── CRUD ──────────
 
-    /** 创建并添加新锚点（自动分配 ID） */
-    public Anchor create(BlockPos pos, String name, String description, String color) {
+    /** 创建并添加新锚点（自动分配 ID：搜索最小可用正整数） */
+    protected Anchor create(BlockPos pos, String name, String description, String color) {
         synchronized (anchors) {
-            int id = nextId++;
+            int id = 1;
+            while (anchors.containsKey(id)) {
+                id++;
+            }
             Anchor anchor = new Anchor(id, pos, name, description, color);
             addInternal(anchor);
             saveAsync();
@@ -66,13 +82,7 @@ public class AnchorManager {
         }
     }
 
-    /** 内部添加（从文件读取时使用） */
-    private void addInternal(Anchor anchor) {
-        anchors.put(anchor.id, anchor);
-        posToId.put(anchor.pos, anchor.id);
-    }
-
-    public boolean remove(int id) {
+    protected boolean remove(int id) {
         synchronized (anchors) {
             Anchor removed = anchors.remove(id);
             if (removed != null) {
@@ -85,13 +95,23 @@ public class AnchorManager {
     }
 
     /** 根据坐标删除 */
-    public boolean removeAt(BlockPos pos) {
+    protected boolean removeAt(BlockPos pos) {
         synchronized (anchors) {
             Integer id = posToId.get(pos);
             if (id != null) {
                 return remove(id);
             }
             return false;
+        }
+    }
+
+    /** 删除所有锚点 */
+    protected void removeAll() {
+        synchronized (anchors) {
+            List<Integer> ids = new ArrayList<>(anchors.keySet());
+            for (Integer id : ids) {
+                remove(id);
+            }
         }
     }
 
@@ -117,7 +137,7 @@ public class AnchorManager {
     }
 
     /** 更新锚点属性 */
-    public boolean update(int id, String name, String description, String color) {
+    protected boolean update(int id, String name, String description, String color) {
         synchronized (anchors) {
             Anchor anchor = anchors.get(id);
             if (anchor == null) return false;
@@ -130,18 +150,11 @@ public class AnchorManager {
     }
 
     /** 加密/兼容层：根据坐标更新 */
-    public boolean updateAt(BlockPos pos, String name, String description, String color) {
+    protected boolean updateAt(BlockPos pos, String name, String description, String color) {
         Integer id = posToId.get(pos);
         return id != null && update(id, name, description, color);
     }
 
-    public String toJsonString() {
-        JsonArray array = new JsonArray();
-        for (Anchor anchor : anchors.values()) {
-            array.add(anchor.toJson());
-        }
-        return array.toString();
-    }
 
     // ────────── 持久化 ──────────
 
@@ -149,14 +162,10 @@ public class AnchorManager {
         synchronized (anchors) {
             anchors.clear();
             posToId.clear();
-            nextId = 1;
             if (savePath == null || !Files.exists(savePath)) return;
             try {
                 String json = Files.readString(savePath);
                 JsonObject root = GSON.fromJson(json, JsonObject.class);
-                if (root.has("nextId")) {
-                    nextId = root.get("nextId").getAsInt();
-                }
                 if (root.has("anchors")) {
                     JsonArray array = root.getAsJsonArray("anchors");
                     for (var elem : array) {
@@ -182,12 +191,9 @@ public class AnchorManager {
                 Files.createDirectories(savePath.getParent());
                 JsonObject root = new JsonObject();
                 List<Anchor> snapshot;
-                int currentNextId;
                 synchronized (anchors) {
                     snapshot = new ArrayList<>(anchors.values());
-                    currentNextId = nextId;
                 }
-                root.addProperty("nextId", currentNextId);
                 JsonArray array = new JsonArray();
                 for (Anchor anchor : snapshot) {
                     array.add(anchor.toJson());

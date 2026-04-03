@@ -1,0 +1,5 @@
+{
+  "item.bbsmcp.anchor_wand": "§a锚点魔杖",
+  "item.bbsmcp.anchor_wand.tooltip1": "§7左键：切换锚点可见性",
+  "item.bbsmcp.anchor_wand.tooltip2": "§7右键：创建/删除锚点"
+}

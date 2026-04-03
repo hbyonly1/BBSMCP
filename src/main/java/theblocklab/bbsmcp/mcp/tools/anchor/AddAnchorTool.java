@@ -6,8 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import theblocklab.bbsmcp.anchor.Anchor;
-import theblocklab.bbsmcp.anchor.AnchorManager;
-import theblocklab.bbsmcp.anchor.AnchorServerNetwork;
+import theblocklab.bbsmcp.anchor.AnchorManagerAPI;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
@@ -48,14 +47,11 @@ public class AddAnchorTool extends MCPTool {
         String color = arguments.has("color") ? arguments.get("color").getAsString() : "#4488FF";
 
         BlockPos pos = new BlockPos(x, y, z);
-        Anchor anchor = AnchorManager.INSTANCE.create(pos, name, description, color);
-
-        // 同步给在线玩家
         ServerPlayerEntity player = getFirstOnlinePlayer(server);
         if (player == null) 
             return MCPToolResponse.error(BBSMCPError.PLAYER_NOT_ONLINE.format(), BBSMCPError.PLAYER_NOT_ONLINE.getHint());
         
-        AnchorServerNetwork.sendAnchorUpdatePacket(player, anchor);
+        Anchor anchor = AnchorManagerAPI.INSTANCE.create(player, pos, name, description, color);
         
         return MCPToolResponse.success(String.format("锚点「%s」已创建（ID: %d），位于 (%d,%d,%d)。", name, anchor.id, x, y, z));
     }

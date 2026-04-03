@@ -7,5 +7,6 @@ public class TestMCPTools extends MCPToolProvider {
         registerTool(new FilmClipTestTool());
         registerTool(new ReplayTestTool());
         registerTool(new SetupEnvTestTool());
+        registerTool(new AnchorTestTool());
     }
 }
