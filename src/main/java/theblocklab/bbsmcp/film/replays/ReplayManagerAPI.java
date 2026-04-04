@@ -10,6 +10,8 @@ import mchorse.bbs_mod.data.DataParser;
 import mchorse.bbs_mod.data.types.BaseType;
 import mchorse.bbs_mod.film.Film;
 import mchorse.bbs_mod.film.replays.Replay;
+import mchorse.bbs_mod.forms.FormUtils;
+import mchorse.bbs_mod.forms.forms.MobForm;
 import mchorse.bbs_mod.utils.keyframes.Keyframe;
 import mchorse.bbs_mod.utils.keyframes.KeyframeChannel;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -193,6 +195,26 @@ public class ReplayManagerAPI {
             throw new BBSMCPException(BBSMCPError.CLIP_INVALID_JSON);
         }
         replay.form.fromData(data.asMap());
+        FilmManagerAPI.sync(player, filmId, film);
+    }
+
+    /**
+     * 为 Replay 设置原版生物形式（等同于在 UI Palette 的分类中选择某个生物）
+     * 原版生物统一通过 MobForm 表示，并指定对应的 Minecraft 实体 ID
+     *
+     * @param mobId 原版实体 ID，例如 "minecraft:pig", "minecraft:zombie"
+     */
+    public static void setReplayVanillaMob(ServerPlayerEntity player, String filmId, int index, String mobId) {
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
+        Replay replay = getReplay(film, filmId, index);
+
+        // 创建 MobForm 对象并设置其内部对应的 mob 标识
+        MobForm mobForm = new MobForm();
+        mobForm.mobID.set(mobId);
+
+        // 使用 FormUtils.copy 来安全复制并赋予 Replay
+        replay.form.set(FormUtils.copy(mobForm));
+
         FilmManagerAPI.sync(player, filmId, film);
     }
 

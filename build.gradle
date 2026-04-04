@@ -53,6 +53,7 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_language_kotlin_version}"
 	
 	// BBS Mod - 本地依赖
 	// 运行时用户需要自己安装 BBS Mod
@@ -63,7 +64,30 @@ dependencies {
 		exclude group: 'org.slf4j'
 	}
 	
-	// WebSocket 支持（Javalin 内置，但需要 Jetty）
+	// Jakarta Servlet API (Javalin 5.x 必须)
+	include implementation("jakarta.servlet:jakarta.servlet-api:5.0.0")
+	
+	// Jetty 核心组件 (Javalin 5.x 基于 Jetty 11)
+	include implementation("org.eclipse.jetty:jetty-server:11.0.15")
+	include implementation("org.eclipse.jetty:jetty-http:11.0.15")
+	include implementation("org.eclipse.jetty:jetty-util:11.0.15")
+	include implementation("org.eclipse.jetty:jetty-io:11.0.15")
+	
+	// Jetty 核心扩展与安全 (Javalin 运行必须)
+	include implementation("org.eclipse.jetty:jetty-servlet:11.0.15")
+	include implementation("org.eclipse.jetty:jetty-security:11.0.15")
+	include implementation("org.eclipse.jetty:jetty-webapp:11.0.15")
+	include implementation("org.eclipse.jetty:jetty-xml:11.0.15")
+	
+	// Jetty WebSocket 核心架构 (修复 FrameHandlerFactory, WebSocketPolicy 等缺失)
+	include implementation("org.eclipse.jetty.websocket:websocket-core-server:11.0.15")
+	include implementation("org.eclipse.jetty.websocket:websocket-core-common:11.0.15")
+	include implementation("org.eclipse.jetty.websocket:websocket-core-client:11.0.15")
+	include implementation("org.eclipse.jetty.websocket:websocket-jetty-api:11.0.15")
+	include implementation("org.eclipse.jetty.websocket:websocket-jetty-common:11.0.15")
+	include implementation("org.eclipse.jetty.websocket:websocket-servlet:11.0.15")
+	
+	// WebSocket 支持（Javalin 内建高级实现所需的 Jetty 桥接）
 	include implementation("org.eclipse.jetty.websocket:websocket-jetty-server:11.0.15")
 	include implementation("org.eclipse.jetty.websocket:websocket-jetty-client:11.0.15")
 	

@@ -33,6 +33,68 @@ theblocklab.bbsmcp
     * 开发 AI building 组件来生成动画场景。
 * 制作动画的全反馈流程：通过自然语言描述调配各组件来生成动画，并设计一个可闭环的反馈流程来达到合格效果。
 
+## 环境要求
+-   **Minecraft**: 1.20.1 (Fabric)
+-   **Blockbuster**: 需安装兼容版本的 BBS 模组（本桥梁依赖其底层 API）。
+-   **Fabric Language Kotlin**
+-   **Java**: JDK 17+
+
+## 如何连接
+
+#### VS Code
+
+**`.vscode/mcp.json`**
+
+```json
+{
+  "servers": {
+    "bbsmcp": {
+      "url": "http://localhost:8000/mcp",
+      "type": "http"
+    }
+  }
+}
+```
+
+#### Claude Desktop
+
+**`claude_desktop_config.json`**
+
+```json
+{
+  "mcpServers": {
+    "bbsmcp": {
+      "command": "npx",
+      "args": ["mcp-remote", "http://localhost:8000/mcp"]
+    }
+  }
+}
+```
+
+#### Claude Code
+
+```bash
+claude mcp add blockbench --transport http http://localhost:8000/mcp
+```
+
+#### [Antigravity](https://antigravity.google/docs/mcp#connecting-custom-mcp-servers)
+
+```json
+{
+  "mcpServers": {
+    "bbsmcp": {
+      "serverUrl": "http://localhost:8000/mcp"
+    }
+  }
+}
+```
+
+#### Inspector
+
+```bash
+npx -y @modelcontextprotocol/inspector http://localhost:8000/mcp
+```
+
 ## 构建说明
 
 项目基于 Fabric 开发框架（Loom），使用 Gradle 进行构建。
@@ -48,19 +110,4 @@ theblocklab.bbsmcp
     ```
     *构建生成的 jar 文件位于 `build/libs` 目录下。*
 
-## 接入 MCP
 
-项目启动后，后台会开启一个 MCP 服务端（硬编码端口 `8000`）。
-
-### 如何连接
-你可以使用 `mcp-inspector` 或其他支持 MCP 的客户端连接到运行中的游戏实例：
-
-```bash
-# 使用 Inspector 检查工具列表
-npx -y @modelcontextprotocol/inspector http://localhost:8000/mcp
-```
-
-## 环境要求
--   **Minecraft**: 1.20.1 (Fabric)
--   **Blockbuster Mod**: 需安装兼容版本的 BBS 模组（本桥梁依赖其底层 API）。
--   **Java**: JDK 17+

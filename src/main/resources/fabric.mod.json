@@ -36,6 +36,7 @@
 		"minecraft": "~1.20.1",
 		"java": ">=17",
 		"fabric-api": "*",
-		"bbs": "*"
+		"bbs": "*",
+		"fabric-language-kotlin": ">=1.10.10"
 	}
 }
