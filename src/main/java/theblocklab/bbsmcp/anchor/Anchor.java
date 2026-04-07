@@ -1,10 +1,12 @@
 package theblocklab.bbsmcp.anchor;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.util.math.BlockPos;
 
 /**
  * 锚点数据类。
+ * camera_hints 存储 AI 勘察后写入的多候选摄像机视角。
  */
 public class Anchor {
     public final int id;
@@ -12,6 +14,7 @@ public class Anchor {
     public String name;
     public String description;
     public String color; // Hex string: #RRGGBB
+    public JsonArray cameraHints; // AI 勘察写入的候选摄像机视角列表
 
     public Anchor(int id, BlockPos pos, String name, String description, String color) {
         this.id = id;
@@ -19,6 +22,7 @@ public class Anchor {
         this.name = name;
         this.description = description;
         this.color = color;
+        this.cameraHints = new JsonArray();
     }
 
     public int toARGB() {
@@ -38,6 +42,7 @@ public class Anchor {
         obj.addProperty("name", name);
         obj.addProperty("description", description);
         obj.addProperty("color", color);
+        obj.add("camera_hints", cameraHints != null ? cameraHints : new JsonArray());
         return obj;
     }
 
@@ -49,6 +54,11 @@ public class Anchor {
         String name = obj.get("name").getAsString();
         String description = obj.get("description").getAsString();
         String color = obj.get("color").getAsString();
-        return new Anchor(id, new BlockPos(x, y, z), name, description, color);
+        Anchor anchor = new Anchor(id, new BlockPos(x, y, z), name, description, color);
+        // 向下兼容：旧数据没有 camera_hints 字段时视为空列表
+        if (obj.has("camera_hints") && obj.get("camera_hints").isJsonArray()) {
+            anchor.cameraHints = obj.getAsJsonArray("camera_hints");
+        }
+        return anchor;
     }
 }

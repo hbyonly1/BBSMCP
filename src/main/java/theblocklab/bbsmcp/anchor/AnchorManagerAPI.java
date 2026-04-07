@@ -47,4 +47,33 @@ public class AnchorManagerAPI {
         AnchorManager.INSTANCE.removeAll();
         AnchorServerNetwork.sendAnchorListPacket(player);
     }
+
+    // ────────── Camera Hints ──────────
+
+    /** 添加一个 camera hint 到锚点 */
+    public boolean addCameraHint(int anchorId, com.google.gson.JsonObject hint) {
+        return AnchorManager.INSTANCE.addCameraHint(anchorId, hint);
+    }
+
+    /** 删除一个 camera hint */
+    public boolean removeCameraHint(int anchorId, int hintId) {
+        return AnchorManager.INSTANCE.removeCameraHint(anchorId, hintId);
+    }
+
+    /** 标记某 hint 为首选 */
+    public boolean setPreferredHint(int anchorId, int hintId) {
+        return AnchorManager.INSTANCE.setPreferredHint(anchorId, hintId);
+    }
+
+    /** 清空某锚点所有 hints */
+    public boolean clearCameraHints(int anchorId) {
+        return AnchorManager.INSTANCE.clearCameraHints(anchorId);
+    }
+
+    /** 获取指定锚点的详细数据（含 camera_hints） */
+    public String getAnchorJson(int anchorId) {
+        Anchor anchor = AnchorManager.INSTANCE.get(anchorId);
+        if (anchor == null) return null;
+        return anchor.toJson().toString();
+    }
 }

@@ -149,6 +149,92 @@ public class AnchorManager {
         }
     }
 
+    // ────────── camera hint ──────────
+
+    /** 添加一个 camera hint 到指定锚点，并自动分配 hintId */
+    protected boolean addCameraHint(int anchorId, com.google.gson.JsonObject hint) {
+        synchronized (anchors) {
+            Anchor anchor = anchors.get(anchorId);
+            if (anchor == null) return false;
+            // 计算最大现有 id+1 作为新 id
+            int maxId = 0;
+            for (var elem : anchor.cameraHints) {
+                if (elem.isJsonObject() && elem.getAsJsonObject().has("id")) {
+                    maxId = Math.max(maxId, elem.getAsJsonObject().get("id").getAsInt());
+                }
+            }
+            hint.addProperty("id", maxId + 1);
+            if (!hint.has("preferred")) hint.addProperty("preferred", false);
+            anchor.cameraHints.add(hint);
+            saveAsync();
+            return true;
+        }
+    }
+
+    /** 从指定锚点删除一个 hint */
+    protected boolean removeCameraHint(int anchorId, int hintId) {
+        synchronized (anchors) {
+            Anchor anchor = anchors.get(anchorId);
+            if (anchor == null) return false;
+            for (int i = 0; i < anchor.cameraHints.size(); i++) {
+                var elem = anchor.cameraHints.get(i);
+                if (elem.isJsonObject() && elem.getAsJsonObject().get("id").getAsInt() == hintId) {
+                    anchor.cameraHints.remove(i);
+                    saveAsync();
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /** 标记某个 hint 为首选（并自动清除其余） */
+    protected boolean setPreferredHint(int anchorId, int hintId) {
+        synchronized (anchors) {
+            Anchor anchor = anchors.get(anchorId);
+            if (anchor == null) return false;
+            boolean found = false;
+            for (var elem : anchor.cameraHints) {
+                if (!elem.isJsonObject()) continue;
+                var obj = elem.getAsJsonObject();
+                boolean isTarget = obj.has("id") && obj.get("id").getAsInt() == hintId;
+                obj.addProperty("preferred", isTarget);
+                if (isTarget) found = true;
+            }
+            if (found) saveAsync();
+            return found;
+        }
+    }
+
+    /** 更新锚点上已有 hint 的内容（新增 hint 请用 addCameraHint） */
+    protected boolean updateCameraHint(int anchorId, int hintId, com.google.gson.JsonObject updatedHint) {
+        synchronized (anchors) {
+            Anchor anchor = anchors.get(anchorId);
+            if (anchor == null) return false;
+            for (int i = 0; i < anchor.cameraHints.size(); i++) {
+                var elem = anchor.cameraHints.get(i);
+                if (elem.isJsonObject() && elem.getAsJsonObject().get("id").getAsInt() == hintId) {
+                    updatedHint.addProperty("id", hintId); // 保持 id 不变
+                    anchor.cameraHints.set(i, updatedHint);
+                    saveAsync();
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /** 删除当前锚点所有的 camera hints */
+    protected boolean clearCameraHints(int anchorId) {
+        synchronized (anchors) {
+            Anchor anchor = anchors.get(anchorId);
+            if (anchor == null) return false;
+            anchor.cameraHints = new com.google.gson.JsonArray();
+            saveAsync();
+            return true;
+        }
+    }
+
     /** 加密/兼容层：根据坐标更新 */
     protected boolean updateAt(BlockPos pos, String name, String description, String color) {
         Integer id = posToId.get(pos);
