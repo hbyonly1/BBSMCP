@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.server.MinecraftServer;
+import theblocklab.bbsmcp.mcp.core.MCPPromptProvider;
 import theblocklab.bbsmcp.mcp.core.MCPToolProvider;
 
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
 public class MCPRouter {
 
     private final List<MCPToolProvider> providers = new ArrayList<>();
+    private final List<MCPPromptProvider> promptProviders = new ArrayList<>();
     private final MinecraftServer server;
 
     public MCPRouter(MinecraftServer server) {
@@ -27,6 +29,13 @@ public class MCPRouter {
      */
     public void registerProvider(MCPToolProvider provider) {
         this.providers.add(provider);
+    }
+ 
+    /**
+     * 注册一个新的提示词提供者
+     */
+    public void registerPromptProvider(MCPPromptProvider provider) {
+        this.promptProviders.add(provider);
     }
 
     /**
@@ -63,6 +72,10 @@ public class MCPRouter {
                 return CompletableFuture.completedFuture(handleToolsList(id));
             } else if ("tools/call".equals(method)) {
                 return handleToolsCallAsync(id, request.getAsJsonObject("params"));
+            } else if ("prompts/list".equals(method)) {
+                return CompletableFuture.completedFuture(handlePromptsList(id));
+            } else if ("prompts/get".equals(method)) {
+                return CompletableFuture.completedFuture(handlePromptsGet(id, request.getAsJsonObject("params")));
             } else {
                 return CompletableFuture.completedFuture(buildErrorResponse(id, -32601, "Method not found: " + method));
             }
@@ -85,6 +98,7 @@ public class MCPRouter {
 
         JsonObject capabilities = new JsonObject();
         capabilities.add("tools", new JsonObject());
+        capabilities.add("prompts", new JsonObject());
         result.add("capabilities", capabilities);
 
         return buildSuccessResponse(id, result);
@@ -205,5 +219,40 @@ public class MCPRouter {
         response.add("error", errorInfo);
 
         return response.toString();
+    }
+
+    private String handlePromptsList(Object id) {
+        JsonArray promptsArray = new JsonArray();
+        for (MCPPromptProvider provider : promptProviders) {
+            JsonArray defs = provider.getPromptDefinitions();
+            if (defs != null) {
+                for (int i = 0; i < defs.size(); i++) {
+                    promptsArray.add(defs.get(i));
+                }
+            }
+        }
+
+        JsonObject result = new JsonObject();
+        result.add("prompts", promptsArray);
+
+        return buildSuccessResponse(id, result);
+    }
+
+    private String handlePromptsGet(Object id, JsonObject params) {
+        if (params == null || !params.has("name")) {
+            return buildErrorResponse(id, -32602, "Invalid params: missing prompt name");
+        }
+
+        String promptName = params.get("name").getAsString();
+        JsonObject arguments = params.has("arguments") ? params.getAsJsonObject("arguments") : new JsonObject();
+
+        for (MCPPromptProvider provider : promptProviders) {
+            JsonObject response = provider.getPrompt(promptName, arguments);
+            if (response != null) {
+                return buildSuccessResponse(id, response);
+            }
+        }
+
+        return buildErrorResponse(id, -32601, "Prompt not found: " + promptName);
     }
 }
