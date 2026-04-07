@@ -32,6 +32,7 @@ public class ServerNetwork {
     public static final Identifier CLIENT_GET_CURSOR = new Identifier("bbsmcp", "client_get_cursor");
 
     public static final Identifier CLIENT_SAVE_FILM = new Identifier("bbsmcp", "client_save_film");
+    public static final Identifier CLIENT_CAPTURE_SCREENSHOT = new Identifier("bbsmcp", "client_capture_screenshot");
 
     // === AI building 相关 Identifier ===
     public static final Identifier GENERATE_BUILDING_C2S = new Identifier("bbsmcp", "generate_building");
@@ -107,6 +108,17 @@ public class ServerNetwork {
 
         return ServerRequestBridge.request(player, CLIENT_SAVE_FILM, buf -> {
             buf.writeString(filmId);
+        });
+    }
+
+    // 请求客户端在指定 tick 截图，并可选设置起始点
+    public static CompletableFuture<String> requestClientCaptureScreenshotPacket(ServerPlayerEntity player, int targetTick, int startTick) {
+        player.sendMessage(
+                Text.literal(String.format("§c[BBSMCP Server] 正在通过 Bridge 请求客户端截图: target: %d, start: %d", targetTick, startTick)));
+
+        return ServerRequestBridge.requestData(player, CLIENT_CAPTURE_SCREENSHOT, buf -> {
+            buf.writeInt(targetTick);
+            buf.writeInt(startTick);
         });
     }
 

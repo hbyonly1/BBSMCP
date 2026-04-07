@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.text.Text;
+import theblocklab.bbsmcp.utils.CaptureHelper;
 
 import java.util.List;
 
@@ -73,6 +74,10 @@ public class ClientNetwork {
         ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_GET_CURSOR,
                 (client, handler, buf, responseSender) -> {
                     handleClientGetCursorPacket(client, buf);
+                });
+        ClientPlayNetworking.registerGlobalReceiver(ServerNetwork.CLIENT_CAPTURE_SCREENSHOT,
+                (client, handler, buf, responseSender) -> {
+                    handleClientCaptureScreenshotPacket(client, buf);
                 });
     }
 
@@ -342,6 +347,29 @@ public class ClientNetwork {
             } catch (Exception e) {
                 e.printStackTrace();
                 sendError(requestId, "获取游标失败: " + e.getMessage());
+            }
+        });
+    }
+
+    private static void handleClientCaptureScreenshotPacket(MinecraftClient client, PacketByteBuf buf) {
+        int requestId = buf.readInt();
+        int targetTick = buf.readInt();
+        int startTick = buf.readInt();
+        client.execute(() -> {
+            try {
+                CaptureHelper.startCaptureTask(targetTick, startTick)
+                    .thenAccept(path -> sendData(requestId, path))
+                    .exceptionally(e -> {
+                        sendError(requestId, "截图任务失败: " + e.getMessage());
+                        return null;
+                    });
+                
+                if (client.player != null) {
+                    client.player.sendMessage(Text.literal(String.format("§c[BBSMCP Client] 已收到截图请求，正在跳转至 %d 并等待 Tick %d...", startTick, targetTick)));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendError(requestId, "设置截图任务失败: " + e.getMessage());
             }
         });
     }

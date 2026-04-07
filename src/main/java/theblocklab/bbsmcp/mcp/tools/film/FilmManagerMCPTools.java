@@ -10,5 +10,6 @@ public class FilmManagerMCPTools extends MCPToolProvider {
         registerTool(new CreateFilmTool());
         registerTool(new GetFilmListTool());
         registerTool(new DeleteFilmTool());
+        registerTool(new CaptureScreenshotTool());
     }
 }
