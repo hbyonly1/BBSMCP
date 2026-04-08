@@ -6,6 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.anchor.AnchorManagerAPI;
 import theblocklab.bbsmcp.exception.BBSMCPError;
+import theblocklab.bbsmcp.exception.BBSMCPException;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
 
@@ -46,13 +47,11 @@ public class SetAnchorPropertyTool extends MCPTool {
         if (player == null) 
             return MCPToolResponse.error(BBSMCPError.PLAYER_NOT_ONLINE.format(), BBSMCPError.PLAYER_NOT_ONLINE.getHint());
         
-        boolean updated = AnchorManagerAPI.INSTANCE.update(player, id, name, description, color);
-        if (!updated) {
-            return MCPToolResponse.error(
-                    String.format("ID 为 %d 的锚点不存在。", id),
-                    "请先使用 get_anchors 确认 ID 是否正确。");
+        try {
+            AnchorManagerAPI.INSTANCE.update(player, id, name, description, color);
+            return MCPToolResponse.success(String.format("ID 为 %d 的锚点属性已更新。", id));
+        } catch (BBSMCPException e) {
+            return MCPToolResponse.error(e.getMessage(), e.getHint());
         }
-
-        return MCPToolResponse.success(String.format("ID 为 %d 的锚点属性已更新。", id));
     }
 }

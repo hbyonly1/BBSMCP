@@ -34,10 +34,11 @@ public class AnchorManager {
     private final Map<Integer, Anchor> anchors = new LinkedHashMap<>();
     /** 辅助索引：BlockPos -> ID */
     private final Map<BlockPos, Integer> posToId = new HashMap<>();
-    
+
     private Path savePath;
 
-    private AnchorManager() {}
+    private AnchorManager() {
+    }
 
     // ────────── 生命周期 ──────────
 
@@ -65,7 +66,7 @@ public class AnchorManager {
         }
         return array.toString();
     }
-    
+
     // ────────── CRUD ──────────
 
     /** 创建并添加新锚点（自动分配 ID：搜索最小可用正整数） */
@@ -140,10 +141,14 @@ public class AnchorManager {
     protected boolean update(int id, String name, String description, String color) {
         synchronized (anchors) {
             Anchor anchor = anchors.get(id);
-            if (anchor == null) return false;
-            if (name != null) anchor.name = name;
-            if (description != null) anchor.description = description;
-            if (color != null) anchor.color = color;
+            if (anchor == null)
+                return false;
+            if (name != null)
+                anchor.name = name;
+            if (description != null)
+                anchor.description = description;
+            if (color != null)
+                anchor.color = color;
             saveAsync();
             return true;
         }
@@ -152,10 +157,11 @@ public class AnchorManager {
     // ────────── camera hint ──────────
 
     /** 添加一个 camera hint 到指定锚点，并自动分配 hintId */
-    protected boolean addCameraHint(int anchorId, com.google.gson.JsonObject hint) {
+    protected boolean addCameraHint(int anchorId, JsonObject hint) {
         synchronized (anchors) {
             Anchor anchor = anchors.get(anchorId);
-            if (anchor == null) return false;
+            if (anchor == null)
+                return false;
             // 计算最大现有 id+1 作为新 id
             int maxId = 0;
             for (var elem : anchor.cameraHints) {
@@ -164,7 +170,8 @@ public class AnchorManager {
                 }
             }
             hint.addProperty("id", maxId + 1);
-            if (!hint.has("preferred")) hint.addProperty("preferred", false);
+            if (!hint.has("preferred"))
+                hint.addProperty("preferred", false);
             anchor.cameraHints.add(hint);
             saveAsync();
             return true;
@@ -175,7 +182,8 @@ public class AnchorManager {
     protected boolean removeCameraHint(int anchorId, int hintId) {
         synchronized (anchors) {
             Anchor anchor = anchors.get(anchorId);
-            if (anchor == null) return false;
+            if (anchor == null)
+                return false;
             for (int i = 0; i < anchor.cameraHints.size(); i++) {
                 var elem = anchor.cameraHints.get(i);
                 if (elem.isJsonObject() && elem.getAsJsonObject().get("id").getAsInt() == hintId) {
@@ -192,16 +200,20 @@ public class AnchorManager {
     protected boolean setPreferredHint(int anchorId, int hintId) {
         synchronized (anchors) {
             Anchor anchor = anchors.get(anchorId);
-            if (anchor == null) return false;
+            if (anchor == null)
+                return false;
             boolean found = false;
             for (var elem : anchor.cameraHints) {
-                if (!elem.isJsonObject()) continue;
+                if (!elem.isJsonObject())
+                    continue;
                 var obj = elem.getAsJsonObject();
                 boolean isTarget = obj.has("id") && obj.get("id").getAsInt() == hintId;
                 obj.addProperty("preferred", isTarget);
-                if (isTarget) found = true;
+                if (isTarget)
+                    found = true;
             }
-            if (found) saveAsync();
+            if (found)
+                saveAsync();
             return found;
         }
     }
@@ -210,7 +222,8 @@ public class AnchorManager {
     protected boolean updateCameraHint(int anchorId, int hintId, com.google.gson.JsonObject updatedHint) {
         synchronized (anchors) {
             Anchor anchor = anchors.get(anchorId);
-            if (anchor == null) return false;
+            if (anchor == null)
+                return false;
             for (int i = 0; i < anchor.cameraHints.size(); i++) {
                 var elem = anchor.cameraHints.get(i);
                 if (elem.isJsonObject() && elem.getAsJsonObject().get("id").getAsInt() == hintId) {
@@ -228,8 +241,9 @@ public class AnchorManager {
     protected boolean clearCameraHints(int anchorId) {
         synchronized (anchors) {
             Anchor anchor = anchors.get(anchorId);
-            if (anchor == null) return false;
-            anchor.cameraHints = new com.google.gson.JsonArray();
+            if (anchor == null)
+                return false;
+            anchor.cameraHints = new JsonArray();
             saveAsync();
             return true;
         }
@@ -241,14 +255,14 @@ public class AnchorManager {
         return id != null && update(id, name, description, color);
     }
 
-
     // ────────── 持久化 ──────────
 
     private void load() {
         synchronized (anchors) {
             anchors.clear();
             posToId.clear();
-            if (savePath == null || !Files.exists(savePath)) return;
+            if (savePath == null || !Files.exists(savePath))
+                return;
             try {
                 String json = Files.readString(savePath);
                 JsonObject root = GSON.fromJson(json, JsonObject.class);
@@ -271,7 +285,8 @@ public class AnchorManager {
     }
 
     private void saveAsync() {
-        if (savePath == null) return;
+        if (savePath == null)
+            return;
         new Thread(() -> {
             try {
                 Files.createDirectories(savePath.getParent());

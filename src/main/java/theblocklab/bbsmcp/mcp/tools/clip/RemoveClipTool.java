@@ -6,6 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
+import theblocklab.bbsmcp.film.FilmManagerAPI;
 import theblocklab.bbsmcp.film.clips.ClipManagerAPI;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
@@ -53,7 +54,7 @@ public class RemoveClipTool extends MCPTool {
 
     try {
       // 前置操作：在执行写操作前，强制将客户端 UI 层面可能的未保存调整抢占落盘
-      ClipManagerAPI.requestSaveFilmAsync(player, filmId).join();
+      FilmManagerAPI.requestClientSaveFilm(player, filmId).join();
 
       // 注解：ClipManagerAPI.removeClip 内部会自动调用 FilmManagerAPI.getInstance().getFilm(filmId)
       // 若电影不存在，它会直接抛出包含明确错误信息的 BBSMCPException

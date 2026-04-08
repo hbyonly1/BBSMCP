@@ -6,6 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
+import theblocklab.bbsmcp.film.FilmManagerAPI;
 import theblocklab.bbsmcp.film.clips.ClipManagerAPI;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
@@ -56,7 +57,7 @@ public class AddClipTool extends MCPTool {
 
     try {
       // 前置一致性拦截：由于添加镜头时可能会依赖正确的相邻图层或总时长，因此写操作前必须获取最新的客户端画布状态
-      ClipManagerAPI.requestSaveFilmAsync(player, filmId).join();
+      FilmManagerAPI.requestClientSaveFilm(player, filmId);
 
       // 这里的 ClipManagerAPI 底层会隐式调用 FilmManagerAPI.getInstance().getFilm(filmId)
       ClipManagerAPI.addClip(player, filmId, json);

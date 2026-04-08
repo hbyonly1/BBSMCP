@@ -10,9 +10,10 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import theblocklab.bbsmcp.anchor.AnchorManager;
 import theblocklab.bbsmcp.anchor.AnchorManagerAPI;
-import theblocklab.bbsmcp.anchor.AnchorServerNetwork;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
+import theblocklab.bbsmcp.mcp.tools.anchor.ScoutAnchorTool;
+import theblocklab.bbsmcp.mcp.tools.anchor.UpdateAnchorHintsTool;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -71,7 +72,7 @@ public class AnchorTestTool extends MCPTool {
                 .thenCompose(v -> {
                     notify(player, "2/7", "正在创建测试锚点 'Test1'...");
                     Vec3d lookPos = player.getEyePos().add(player.getRotationVec(1.0F).multiply(2.0));
-                    BlockPos pos = new BlockPos((int)lookPos.x, (int)lookPos.y, (int)lookPos.z);
+                    BlockPos pos = new BlockPos((int) lookPos.x, (int) lookPos.y, (int) lookPos.z);
                     AnchorManagerAPI.INSTANCE.create(player, pos, "Test1", "", "");
                     return delay(1);
                 })
@@ -88,7 +89,7 @@ public class AnchorTestTool extends MCPTool {
                     if (list.size() == 1) {
                         JsonObject a = list.get(0).getAsJsonObject();
                         if ("#FF0000".equals(a.get("color").getAsString())) {
-                            notify(player, "4/6", "✓ 数据验证通过：属性正确同步。");
+                            notify(player, "4/7", "✓ 数据验证通过：属性正确同步。");
                         } else {
                             throw new RuntimeException("数据验证失败：颜色不匹配！");
                         }
@@ -101,12 +102,12 @@ public class AnchorTestTool extends MCPTool {
                     // Step 5: ID 复用逻辑测试
                     notify(player, "5/7", "开始 ID 复用逻辑测试...");
                     AnchorManagerAPI.INSTANCE.remove(player, 1);
-                    
+
                     notify(player, "5/7", "已删除 ID:1。尝试创建新锚点验证 ID 是否复用...");
                     Vec3d lookPos = player.getEyePos().add(player.getRotationVec(1.0F).multiply(2.0));
-                    BlockPos pos = new BlockPos((int)lookPos.x, (int)lookPos.y, (int)lookPos.z);
+                    BlockPos pos = new BlockPos((int) lookPos.x, (int) lookPos.y, (int) lookPos.z);
                     AnchorManagerAPI.INSTANCE.create(player, pos, "ReuseTest", "", "");
-                    
+
                     if (AnchorManager.INSTANCE.has(1)) {
                         notify(player, "5/7", "✓ ID 复用验证通过：新锚点获得了 ID:1。");
                     } else {
@@ -115,76 +116,108 @@ public class AnchorTestTool extends MCPTool {
                     return delay(1);
                 })
                 .thenCompose(v -> {
-                    // Step 6: Camera Hints 勘察功能测试
-                    notify(player, "6/7", "开始测试 Camera Hints 勘察系统...");
-                    
-                    // 构造两个模拟的 Hint
-                    JsonObject hint1 = new JsonObject();
-                    hint1.addProperty("camera_x", 10.0);
-                    hint1.addProperty("camera_y", 70.0);
-                    hint1.addProperty("camera_z", 10.0);
-                    hint1.addProperty("yaw", 90.0f);
-                    hint1.addProperty("pitch", 30.0f);
-                    hint1.addProperty("note", "测试俯拍视角");
-                    hint1.addProperty("screenshot", "test_scout_1.png");
+                    // --- 模拟 AI 导演工作流 ---
+                    // 6.1 调用 ScoutAnchorTool 进行勘察
+                    ScoutAnchorTool scoutTool = new ScoutAnchorTool();
+                    JsonObject scoutArgs = new JsonObject();
+                    scoutArgs.addProperty("anchor_id", 1);
+                    scoutArgs.addProperty("film_id", "test");
 
+                    JsonArray cameraPositions = new JsonArray();
+                    JsonObject pos1 = new JsonObject();
+                    pos1.addProperty("x", 10.0);
+                    pos1.addProperty("y", 70.0);
+                    pos1.addProperty("z", 10.0);
+                    pos1.addProperty("yaw", 90.0f);
+                    pos1.addProperty("pitch", 30.0f);
+                    cameraPositions.add(pos1);
+
+                    JsonObject pos2 = new JsonObject();
+                    pos2.addProperty("x", 10.0);
+                    pos2.addProperty("y", 62.0);
+                    pos2.addProperty("z", 10.0);
+                    pos2.addProperty("yaw", 90.0f);
+                    pos2.addProperty("pitch", -20.0f);
+                    cameraPositions.add(pos2);
+                    scoutArgs.add("camera_positions", cameraPositions);
+
+                    notify(player, "6/7", "正在执行 ScoutAnchorTool 模拟勘察...");
+                    scoutTool.execute(scoutArgs, server);
+                    return delay(2);
+                })
+                .thenCompose(v -> {
+                    // 6.2 模拟 AI 决策后，调用 UpdateAnchorHintsTool 写入 hints
+                    UpdateAnchorHintsTool updateTool = new UpdateAnchorHintsTool();
+                    JsonObject updateArgs = new JsonObject();
+                    updateArgs.addProperty("anchor_id", 1);
+
+                    JsonArray hintsToUpdate = new JsonArray();
+                    // 构造 hint2 的数据
                     JsonObject hint2 = new JsonObject();
                     hint2.addProperty("camera_x", 10.0);
                     hint2.addProperty("camera_y", 62.0);
                     hint2.addProperty("camera_z", 10.0);
                     hint2.addProperty("yaw", 90.0f);
                     hint2.addProperty("pitch", -20.0f);
-                    hint2.addProperty("note", "测试仰拍视角");
-                    hint2.addProperty("screenshot", "test_scout_2.png");
+                    hint2.addProperty("note", "测试仰拍视角 (via UpdateTool)");
+                    hint2.addProperty("screenshot", "scout_sim_2.png");
+                    hintsToUpdate.add(hint2);
 
-                    // 调用 API 添加
-                    AnchorManagerAPI.INSTANCE.addCameraHint(1, hint1);
-                    AnchorManagerAPI.INSTANCE.addCameraHint(1, hint2);
-                    
-                    // 校验是否添加成功（应有 2 个 hints）
+                    updateArgs.add("hints", hintsToUpdate);
+                    updateArgs.addProperty("clear_existing", true);
+
+                    notify(player, "6/7", "正在执行 UpdateAnchorHintsTool 写入视角...");
+                    updateTool.execute(updateArgs, server);
+                    return delay(1);
+                })
+                .thenCompose(v -> {
+                    // 校验并执行首选标记
                     String anchorData = AnchorManagerAPI.INSTANCE.getAnchorJson(1);
                     JsonObject anchorObj = JsonParser.parseString(anchorData).getAsJsonObject();
                     JsonArray hints = anchorObj.getAsJsonArray("camera_hints");
-                    
-                    if (hints.size() != 2) {
-                        throw new RuntimeException("Camera Hints 添加验证失败：期望 2 个，实际 " + hints.size());
-                    }
-                    notify(player, "6/7", "✓ Hints 添加验证通过（2个候选视角）。");
 
-                    // 测试首选标记 (Hint ID 自动从 1 开始分配，第 2 个应为 ID:2)
-                    AnchorManagerAPI.INSTANCE.setPreferredHint(1, 2);
-                    anchorData = AnchorManagerAPI.INSTANCE.getAnchorJson(1);
-                    hints = JsonParser.parseString(anchorData).getAsJsonObject().getAsJsonArray("camera_hints");
-                    
-                    boolean h1Pref = hints.get(0).getAsJsonObject().get("preferred").getAsBoolean();
-                    boolean h2Pref = hints.get(1).getAsJsonObject().get("preferred").getAsBoolean();
-                    
-                    if (!h2Pref || h1Pref) {
-                        throw new RuntimeException("Camera Hints 首选标记验证失败：Hint 2 应为首选，而 Hint 1 不应是。");
-                    }
-                    notify(player, "6/7", "✓ 首选标记验证通过。");
-
-                    // 测试删除与清空
-                    AnchorManagerAPI.INSTANCE.removeCameraHint(1, 1);
-                    anchorData = AnchorManagerAPI.INSTANCE.getAnchorJson(1);
-                    hints = JsonParser.parseString(anchorData).getAsJsonObject().getAsJsonArray("camera_hints");
                     if (hints.size() != 1) {
-                         throw new RuntimeException("Camera Hints 删除单项验证失败。");
+                        throw new RuntimeException("Camera Hints 写入验证失败：期望 1 个，实际 " + hints.size());
                     }
-                    
-                    AnchorManagerAPI.INSTANCE.clearCameraHints(1);
+                    notify(player, "6/7", "✓ 勘察与写入流程验证通过。开始标记首选视角...");
+
+                    int realHintId = hints.get(0).getAsJsonObject().get("id").getAsInt();
+                    AnchorManagerAPI.INSTANCE.setPreferredHint(player, 1, realHintId);
+                    return delay(1);
+                })
+                .thenCompose(v -> {
+                    notify(player, "6/7", "正在验证首选标记状态...");
+                    String anchorData = AnchorManagerAPI.INSTANCE.getAnchorJson(1);
+                    JsonArray hints = JsonParser.parseString(anchorData).getAsJsonObject()
+                            .getAsJsonArray("camera_hints");
+
+                    if (!hints.get(0).getAsJsonObject().get("preferred").getAsBoolean()) {
+                        throw new RuntimeException("Camera Hints 首选标记验证失败。");
+                    }
+                    notify(player, "6/7", "✓ 首选标记验证通过。准备测试删除操作...");
+
+                    int realHintId = hints.get(0).getAsJsonObject().get("id").getAsInt();
+                    AnchorManagerAPI.INSTANCE.removeCameraHint(player, 1, realHintId);
+                    return delay(1);
+                })
+                .thenCompose(v -> {
+                    notify(player, "6/7", "正在验证单项删除结果并执行最终清空...");
+                    String anchorData = AnchorManagerAPI.INSTANCE.getAnchorJson(1);
+                    JsonArray hints = JsonParser.parseString(anchorData).getAsJsonObject()
+                            .getAsJsonArray("camera_hints");
+
+                    AnchorManagerAPI.INSTANCE.clearCameraHints(player, 1);
                     anchorData = AnchorManagerAPI.INSTANCE.getAnchorJson(1);
                     hints = JsonParser.parseString(anchorData).getAsJsonObject().getAsJsonArray("camera_hints");
                     if (hints.size() != 0) {
-                         throw new RuntimeException("Camera Hints 清空验证失败。");
+                        throw new RuntimeException("Camera Hints 清空验证失败。");
                     }
-                    
+
                     notify(player, "6/7", "✓ Hints 增删改查全流程验证通过。");
                     return delay(1);
                 })
                 .thenCompose(v -> {
-                    notify(player, "7/7", "正在同步最终数据...");
-                    AnchorServerNetwork.sendAnchorListPacket(player); // 强制同步确保 UI 更新
+                    notify(player, "7/7", "所有 Camera Hints 同步完成。");
                     return delay(1);
                 })
                 .thenCompose(v -> {

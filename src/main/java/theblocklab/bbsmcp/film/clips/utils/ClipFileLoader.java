@@ -104,9 +104,7 @@ public class ClipFileLoader {
                 lastLoadedFilepath = filepath;
             }
 
-            FilmManagerAPI.pushFilmToUI(player, filmId, (MapType) film.toData());
-            // load 返回的仅仅是 film 的数据副本，要使改动生效，应该保存到硬盘
-            FilmManagerAPI.INSTANCE.saveFilm(filmId, (MapType) film.toData());
+            FilmManagerAPI.pushFilmS2C(player, filmId, (MapType) film.toData());
 
             // 选中最后一个添加的镜头
             // if (successCount > 0) {

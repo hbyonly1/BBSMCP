@@ -1,5 +1,7 @@
 package theblocklab.bbsmcp.film.clips;
 
+import com.google.gson.JsonArray;
+import java.util.List;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
 import theblocklab.bbsmcp.film.FilmManagerAPI;
@@ -7,11 +9,6 @@ import theblocklab.bbsmcp.film.clips.utils.ClipDataConverter;
 import theblocklab.bbsmcp.film.clips.utils.ClipShiftValidator;
 import theblocklab.bbsmcp.film.clips.utils.ClipValidationChecker;
 import theblocklab.bbsmcp.network.ServerNetwork;
-
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-
-import com.google.gson.JsonArray;
 
 import mchorse.bbs_mod.data.DataParser;
 import mchorse.bbs_mod.data.types.BaseType;
@@ -75,8 +72,7 @@ public class ClipManagerAPI {
             film.camera.addClip(clip);
         }
 
-        FilmManagerAPI.pushFilmToUI(player, filmId, (MapType) film.toData());
-        FilmManagerAPI.INSTANCE.saveFilm(filmId, (MapType) film.toData());
+        FilmManagerAPI.pushFilmS2C(player, filmId, (MapType) film.toData());
 
         // 选中刚刚添加/更新的 Clip
         pickClip(player, filmId, clip);
@@ -95,8 +91,7 @@ public class ClipManagerAPI {
 
         film.camera.remove(clip);
 
-        FilmManagerAPI.pushFilmToUI(player, filmId, (MapType) film.toData());
-        FilmManagerAPI.INSTANCE.saveFilm(filmId, (MapType) film.toData());
+        FilmManagerAPI.pushFilmS2C(player, filmId, (MapType) film.toData());
     }
 
     /**
@@ -176,15 +171,6 @@ public class ClipManagerAPI {
     }
 
     /**
-     * 向客户端发送异步执行 Film 持久化保存的强制命令
-     */
-    public static CompletableFuture<Boolean> requestSaveFilmAsync(ServerPlayerEntity player, String filmId) {
-        // 利用底层预先校验机制阻挡无效请求
-        FilmManagerAPI.INSTANCE.getFilm(filmId);
-        return theblocklab.bbsmcp.network.ServerNetwork.requestClientSaveFilmPacket(player, filmId);
-    }
-
-    /**
      * 选中指定 Clip，发送网络包通知客户端。
      */
     public static <T extends Clip> T pickClip(ServerPlayerEntity player, String filmId, T clip) {
@@ -221,7 +207,7 @@ public class ClipManagerAPI {
             }
         }
 
-        FilmManagerAPI.sync(player, filmId, film);
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
     }
 
     /**
@@ -249,6 +235,6 @@ public class ClipManagerAPI {
             }
         }
 
-        FilmManagerAPI.sync(player, filmId, film);
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
     }
 }

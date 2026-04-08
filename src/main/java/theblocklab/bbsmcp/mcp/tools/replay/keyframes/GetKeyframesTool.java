@@ -6,6 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
+import theblocklab.bbsmcp.film.FilmManagerAPI;
 import theblocklab.bbsmcp.film.clips.ClipManagerAPI;
 import theblocklab.bbsmcp.film.replays.ReplayManagerAPI;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
@@ -50,7 +51,7 @@ public class GetKeyframesTool extends MCPTool {
         if (player == null) return MCPToolResponse.error(BBSMCPError.PLAYER_NOT_ONLINE.format(), BBSMCPError.PLAYER_NOT_ONLINE.getHint());
 
         try {
-            ClipManagerAPI.requestSaveFilmAsync(player, filmId).join();
+            FilmManagerAPI.requestClientSaveFilm(player, filmId).join();
 
             List<String> channels = null;
             if (arguments.has("channels")) {

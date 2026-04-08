@@ -24,8 +24,6 @@ public class FilmManagerAPI {
     // 为某个玩家创建film
     public void createFilm(String filmId) {
         this.films.save(filmId, (MapType) this.films.create(filmId).toData());
-        // 为什么要sync?让客户端打开保存好的不行吗
-        // syncFilmS2C(server.getPlayerManager().getPlayerList().get(0) , filmId);
     }
 
     public void deleteFilm(String filmId) {
@@ -55,15 +53,20 @@ public class FilmManagerAPI {
         return film;
     }
 
-    public static void sync(ServerPlayerEntity player, String filmId, Film film) {
+    public static void pushFilmS2C(ServerPlayerEntity player, String filmId, Film film) {
         MapType filmData = (MapType) film.toData();
-        FilmManagerAPI.pushFilmToUI(player, filmId, filmData);
-        FilmManagerAPI.INSTANCE.saveFilm(filmId, filmData);
+        pushFilmToUI(player, filmId, filmData);
+        INSTANCE.saveFilm(filmId, filmData);
+    }
+
+    public static void pushFilmS2C(ServerPlayerEntity player, String filmId, MapType filmData) {
+        pushFilmToUI(player, filmId, filmData);
+        INSTANCE.saveFilm(filmId, filmData);
     }
 
     // 若要同步到客户端，应先向客户端 UI 填充电影数据！再保存
     // UI 会定期保存，所以第一更改 UI 的数据
-    public static void pushFilmToUI(ServerPlayerEntity player, String filmId, MapType filmData) {
+    private static void pushFilmToUI(ServerPlayerEntity player, String filmId, MapType filmData) {
         // 客户端接收后实际上会向 UI 同步数据
         theblocklab.bbsmcp.network.ServerNetwork.sendServerFilmDataPacket(player, filmId, filmData);
     }
@@ -84,7 +87,19 @@ public class FilmManagerAPI {
         ServerNetwork.sendStopFilm(player, filmId);
     }
 
-    public static java.util.concurrent.CompletableFuture<String> captureScreenshot(ServerPlayerEntity player, int targetTick, int startTick) {
-        return theblocklab.bbsmcp.network.ServerNetwork.requestClientCaptureScreenshotPacket(player, targetTick, startTick);
+    public static java.util.concurrent.CompletableFuture<String> captureScreenshot(ServerPlayerEntity player,
+            int targetTick, int startTick) {
+        return theblocklab.bbsmcp.network.ServerNetwork.requestClientCaptureScreenshotPacket(player, targetTick,
+                startTick);
+    }
+
+    /**
+     * 向客户端发送异步执行 Film 持久化保存的强制命令
+     */
+    public static java.util.concurrent.CompletableFuture<Boolean> requestClientSaveFilm(ServerPlayerEntity player,
+            String filmId) {
+        // 利用底层预先校验机制阻挡无效请求
+        FilmManagerAPI.INSTANCE.getFilm(filmId);
+        return theblocklab.bbsmcp.network.ServerNetwork.requestClientSaveFilmPacket(player, filmId);
     }
 }

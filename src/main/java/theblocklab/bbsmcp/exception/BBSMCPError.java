@@ -45,7 +45,13 @@ public enum BBSMCPError {
     REPLAY_NOT_FOUND("REPLAY_001", "索引 %d 处不存在 Replay，当前 Film '%s' 共有 %d 个 Replay",
             "请用 get_replays 确认当前 Replay 列表后再操作"),
     REPLAY_CHANNEL_NOT_FOUND("REPLAY_002", "关键帧通道 '%s' 不存在于 Replay 的 ReplayKeyframes 中",
-            "请先调用 get_replay_schema 获取所有合法通道 ID，注意通道 ID 与 Java 字段名不完全一致");
+            "请先调用 get_replay_schema 获取所有合法通道 ID，注意通道 ID 与 Java 字段名不完全一致"),
+
+    // ── Anchor 相关 ──────────────────────────────────────────────────────────
+    ANCHOR_NOT_FOUND("ANCHOR_001", "锚点 ID %d 不存在",
+            "请用 get_anchors 查看已有锚点列表，或确认 ID 拼写"),
+    ANCHOR_HINT_NOT_FOUND("ANCHOR_002", "锚点 ID %d 下不存在提示 ID %d",
+            "请先通过 get_anchors 查看该锚点的 camera_hints 列表以获取正确的 hint ID");
 
     // ─────────────────────────────────────────────────────────────────────────
 

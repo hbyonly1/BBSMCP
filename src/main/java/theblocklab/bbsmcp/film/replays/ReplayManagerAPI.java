@@ -134,7 +134,7 @@ public class ReplayManagerAPI {
         Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
         int newIndex = film.replays.getList().size();
         film.replays.addReplay();
-        FilmManagerAPI.sync(player, filmId, film);
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
         return newIndex;
     }
 
@@ -145,7 +145,7 @@ public class ReplayManagerAPI {
         Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
         Replay replay = getReplay(film, filmId, index);
         film.replays.remove(replay);
-        FilmManagerAPI.sync(player, filmId, film);
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
     }
 
     /**
@@ -180,7 +180,7 @@ public class ReplayManagerAPI {
             replay.fp.set(fp);
         }
 
-        FilmManagerAPI.sync(player, filmId, film);
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
     }
 
     /**
@@ -195,7 +195,7 @@ public class ReplayManagerAPI {
             throw new BBSMCPException(BBSMCPError.CLIP_INVALID_JSON);
         }
         replay.form.fromData(data.asMap());
-        FilmManagerAPI.sync(player, filmId, film);
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
     }
 
     /**
@@ -215,7 +215,7 @@ public class ReplayManagerAPI {
         // 使用 FormUtils.copy 来安全复制并赋予 Replay
         replay.form.set(FormUtils.copy(mobForm));
 
-        FilmManagerAPI.sync(player, filmId, film);
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
     }
 
     /**
@@ -229,7 +229,7 @@ public class ReplayManagerAPI {
 
         channel.insert(tick, parseValue(channel, value));
 
-        FilmManagerAPI.sync(player, filmId, film);
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
     }
 
     /**
@@ -255,7 +255,7 @@ public class ReplayManagerAPI {
             }
         }
 
-        FilmManagerAPI.sync(player, filmId, film);
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
     }
 
     /**
@@ -304,7 +304,7 @@ public class ReplayManagerAPI {
             }
         }
 
-        FilmManagerAPI.sync(player, filmId, film);
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
     }
 
     /**
@@ -355,7 +355,7 @@ public class ReplayManagerAPI {
             }
         }
 
-        FilmManagerAPI.sync(player, filmId, film);
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
     }
 
     // ────────────── 私有辅助 ──────────────

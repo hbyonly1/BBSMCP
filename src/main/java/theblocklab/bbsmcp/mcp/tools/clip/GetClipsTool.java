@@ -7,6 +7,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
+import theblocklab.bbsmcp.film.FilmManagerAPI;
 import theblocklab.bbsmcp.film.clips.ClipManagerAPI;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
@@ -70,7 +71,7 @@ public class GetClipsTool extends MCPTool {
             BBSMCPError.PLAYER_NOT_ONLINE.format(),
             BBSMCPError.PLAYER_NOT_ONLINE.getHint());
       }
-      ClipManagerAPI.requestSaveFilmAsync(targetPlayer, filmId).join();
+      FilmManagerAPI.requestClientSaveFilm(targetPlayer, filmId).join();
 
       // 注解：这里调用的 ClipManagerAPI.getXXX 系列方法底层均会立刻调用 FilmManagerAPI.getFilm
       // 如果给定的 filmId 不存在，会直接抛出包含完善文案的 BBSMCPException 被 catch 到

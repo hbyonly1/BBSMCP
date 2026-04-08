@@ -6,6 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
+import theblocklab.bbsmcp.film.FilmManagerAPI;
 import theblocklab.bbsmcp.film.clips.ClipManagerAPI;
 import theblocklab.bbsmcp.film.replays.ReplayManagerAPI;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
@@ -61,7 +62,7 @@ public class BatchAddKeyframesTool extends MCPTool {
 
         try {
             // 前置同步：写入前确保内存与客户端对齐
-            ClipManagerAPI.requestSaveFilmAsync(player, filmId).join();
+            FilmManagerAPI.requestClientSaveFilm(player, filmId).join();
 
             ReplayManagerAPI.batchAddKeyframes(player, filmId, replayIndex, channelFrames, interpolation);
 

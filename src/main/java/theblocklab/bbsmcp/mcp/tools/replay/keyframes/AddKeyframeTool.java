@@ -6,6 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
+import theblocklab.bbsmcp.film.FilmManagerAPI;
 import theblocklab.bbsmcp.film.clips.ClipManagerAPI;
 import theblocklab.bbsmcp.film.replays.ReplayManagerAPI;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
@@ -46,7 +47,7 @@ public class AddKeyframeTool extends MCPTool {
         if (player == null) return MCPToolResponse.error(BBSMCPError.PLAYER_NOT_ONLINE.format(), BBSMCPError.PLAYER_NOT_ONLINE.getHint());
 
         try {
-            ClipManagerAPI.requestSaveFilmAsync(player, filmId).join();
+            FilmManagerAPI.requestClientSaveFilm(player, filmId).join();
             ReplayManagerAPI.addKeyframe(player, filmId, replayIndex, channel, tick, value);
             return MCPToolResponse.success("成功在 Replay[" + replayIndex + "] 通道 '" + channel + "' 的 tick=" + tick + " 处插入关键帧。");
         } catch (BBSMCPException e) {

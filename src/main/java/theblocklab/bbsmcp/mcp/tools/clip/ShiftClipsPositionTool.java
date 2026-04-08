@@ -6,7 +6,8 @@ package theblocklab.bbsmcp.mcp.tools.clip;
  import net.minecraft.server.network.ServerPlayerEntity;
  import theblocklab.bbsmcp.exception.BBSMCPError;
  import theblocklab.bbsmcp.exception.BBSMCPException;
- import theblocklab.bbsmcp.film.clips.ClipManagerAPI;
+ import theblocklab.bbsmcp.film.FilmManagerAPI;
+import theblocklab.bbsmcp.film.clips.ClipManagerAPI;
  import theblocklab.bbsmcp.mcp.core.MCPTool;
  import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
  
@@ -53,7 +54,7 @@ package theblocklab.bbsmcp.mcp.tools.clip;
  
          try {
              // 写操作前同步客户端状态
-             ClipManagerAPI.requestSaveFilmAsync(player, filmId).join();
+             FilmManagerAPI.requestClientSaveFilm(player, filmId).join();
  
              ClipManagerAPI.shiftClipsPosition(player, filmId, startTick, endTick, dx, dy, dz);
              return MCPToolResponse.success("已成功执行 Clip 空间平移操作，并同步到客户端。");
