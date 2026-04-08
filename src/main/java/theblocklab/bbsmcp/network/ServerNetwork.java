@@ -112,11 +112,12 @@ public class ServerNetwork {
     }
 
     // 请求客户端在指定 tick 截图，并可选设置起始点
-    public static CompletableFuture<String> requestClientCaptureScreenshotPacket(ServerPlayerEntity player, int targetTick, int startTick) {
+    public static CompletableFuture<Boolean> requestClientCaptureScreenshotPacket(ServerPlayerEntity player, String filename, int targetTick, int startTick) {
         player.sendMessage(
-                Text.literal(String.format("§c[BBSMCP Server] 正在通过 Bridge 请求客户端截图: target: %d, start: %d", targetTick, startTick)));
+                Text.literal(String.format("§c[BBSMCP Server] 正在通过 Bridge 请求客户端截图: %s, target: %d, start: %d", filename, targetTick, startTick)));
 
-        return ServerRequestBridge.requestData(player, CLIENT_CAPTURE_SCREENSHOT, buf -> {
+        return ServerRequestBridge.request(player, CLIENT_CAPTURE_SCREENSHOT, buf -> {
+            buf.writeString(filename);
             buf.writeInt(targetTick);
             buf.writeInt(startTick);
         });

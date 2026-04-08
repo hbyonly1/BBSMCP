@@ -48,8 +48,7 @@ public class AnchorClientRenderer {
         ItemStack held = client.player.getMainHandStack();
         boolean holdingWand = !held.isEmpty() && held.getItem() instanceof AnchorItem;
 
-        if (holdingWand && client.crosshairTarget != null) {
-            BlockHitResult hit = (BlockHitResult) client.crosshairTarget;
+        if (holdingWand && client.crosshairTarget instanceof BlockHitResult hit) {
             BlockPos target = hit.getBlockPos();
 
             matrices.push();

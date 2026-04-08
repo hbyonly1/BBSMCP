@@ -8,6 +8,7 @@ import mchorse.bbs_mod.ui.film.UIFilmPanel;
 import mchorse.bbs_mod.utils.ScreenshotRecorder;
 import net.minecraft.client.MinecraftClient;
 
+import net.fabricmc.loader.api.FabricLoader;
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
 
@@ -18,14 +19,15 @@ import java.util.concurrent.CompletableFuture;
 public class CaptureHelper {
     public static int targetTick = -1;
     public static String currentFilmId = "";
-    public static CompletableFuture<String> currentTask = null;
+    public static String currentFilename = "";
+    public static CompletableFuture<Void> currentTask = null;
 
     /**
      * 启动截图任务
      * @param target 目标截图 tick
      * @param start 可选的起始 tick (-1 表示不设置)
      */
-    public static CompletableFuture<String> startCaptureTask(int target, int start) {
+    public static CompletableFuture<Void> startCaptureTask(String filename, int target, int start) {
         if (currentTask != null && !currentTask.isDone()) {
             return CompletableFuture.failedFuture(new RuntimeException("当前已有截图任务正在进行中！"));
         }
@@ -41,6 +43,7 @@ public class CaptureHelper {
         // 初始化任务状态
         targetTick = target;
         currentFilmId = filmPanel.getData().getId();
+        currentFilename = filename;
         currentTask = new CompletableFuture<>();
 
         // 可选寻时
@@ -78,6 +81,12 @@ public class CaptureHelper {
         // 等待直到到达目标 tick (为了稳妥，考虑 currentTick 刚好等于 targetTick 或略超过)
         if (currentTick >= targetTick) {
             captureBbsFrame();
+            
+            // 截图完成后停止播放
+            if (filmPanel.isRunning()) {
+                filmPanel.togglePlayback();
+            }
+            
             reset();
         }
     }
@@ -85,6 +94,7 @@ public class CaptureHelper {
     private static void reset() {
         targetTick = -1;
         currentFilmId = "";
+        currentFilename = "";
         currentTask = null;
     }
 
@@ -94,19 +104,23 @@ public class CaptureHelper {
             Texture texture = BBSRendering.getTexture();
             
             if (texture != null) {
-                // 生成标识化文件名：bbs_[filmId]_t[tick]_[yyyyMMdd_HHmmss].png
-                String timestamp = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
-                String filename = String.format("bbs_%s_t%d_%s.png", currentFilmId, targetTick, timestamp);
+                // 使用服务端下发的文件名
+                String filename = currentFilename.isEmpty() ? "bbs_unknown.png" : currentFilename;
                 
-                // 通过 BBS 默认截图文件推导其所在的截图文件夹
-                File folder = recorder.getScreenshotFile().getParentFile();
+                // 指定截图保存路径：config/bbsmcp/screenshot
+                File folder = FabricLoader.getInstance().getConfigDir()
+                        .resolve("bbsmcp")
+                        .resolve("screenshot").toFile();
+                if (!folder.exists()) {
+                    folder.mkdirs();
+                }
                 File screenshotFile = new File(folder, filename);
                 
                 recorder.takeScreenshot(screenshotFile, texture.id, texture.width, texture.height);
                 
-                // 返回绝对路径
-                currentTask.complete(screenshotFile.getAbsolutePath());
                 System.out.println("BBS 自动截图已保存: " + screenshotFile.getAbsolutePath());
+                // 返回成功
+                currentTask.complete(null);
             } else {
                 currentTask.completeExceptionally(new RuntimeException("无法获取画面纹理 (Texture is null)"));
             }

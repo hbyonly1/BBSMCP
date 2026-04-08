@@ -87,9 +87,9 @@ public class FilmManagerAPI {
         ServerNetwork.sendStopFilm(player, filmId);
     }
 
-    public static java.util.concurrent.CompletableFuture<String> captureScreenshot(ServerPlayerEntity player,
-            int targetTick, int startTick) {
-        return theblocklab.bbsmcp.network.ServerNetwork.requestClientCaptureScreenshotPacket(player, targetTick,
+    public static java.util.concurrent.CompletableFuture<Boolean> captureScreenshot(ServerPlayerEntity player,
+            String filename, int targetTick, int startTick) {
+        return theblocklab.bbsmcp.network.ServerNetwork.requestClientCaptureScreenshotPacket(player, filename, targetTick,
                 startTick);
     }
 

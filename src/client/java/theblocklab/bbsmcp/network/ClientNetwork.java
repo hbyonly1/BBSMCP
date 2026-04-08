@@ -353,12 +353,13 @@ public class ClientNetwork {
 
     private static void handleClientCaptureScreenshotPacket(MinecraftClient client, PacketByteBuf buf) {
         int requestId = buf.readInt();
+        String filename = buf.readString();
         int targetTick = buf.readInt();
         int startTick = buf.readInt();
         client.execute(() -> {
             try {
-                CaptureHelper.startCaptureTask(targetTick, startTick)
-                    .thenAccept(path -> sendData(requestId, path))
+                CaptureHelper.startCaptureTask(filename, targetTick, startTick)
+                    .thenAccept(v -> sendOK(requestId))
                     .exceptionally(e -> {
                         sendError(requestId, "截图任务失败: " + e.getMessage());
                         return null;

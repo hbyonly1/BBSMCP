@@ -83,11 +83,8 @@ public class AnchorClientEvent {
 
             double reachDistance = 5.0; 
             HitResult hitResult = player.raycast(reachDistance, 0, false);
-            BlockPos pos =  new BlockPos(
-                (int)hitResult.getPos().x, 
-                (int)hitResult.getPos().y, 
-                (int)hitResult.getPos().z
-            );
+            // 修复负坐标转换偏差
+            BlockPos pos = BlockPos.ofFloored(hitResult.getPos());
             handleInteraction(player, pos);
             return TypedActionResult.success(ItemStack.EMPTY);
         });
@@ -102,15 +99,52 @@ public class AnchorClientEvent {
         }
     }
 
-    private static void handleInteraction(PlayerEntity player, BlockPos pos) {
-        // 查找本地缓存
-        Anchor anchor = null;
+    private static Anchor getTargetedAnchor(PlayerEntity player) {
+        net.minecraft.util.math.Vec3d cameraPos = player.getCameraPosVec(1.0F);
+        net.minecraft.util.math.Vec3d rotation = player.getRotationVec(1.0F);
+        net.minecraft.util.math.Vec3d end = cameraPos.add(rotation.multiply(10.0)); // 扩大检测距离为10
+
+        Anchor closest = null;
+        double minDistanceSq = Double.MAX_VALUE;
+
         for (Anchor a : AnchorClientRepository.getAll()) {
-            if (a.pos.equals(pos)) {
-                anchor = a;
-                break;
+            net.minecraft.util.math.Vec3d anchorPos = new net.minecraft.util.math.Vec3d(a.pos.getX() + 0.5, a.pos.getY() + 0.5, a.pos.getZ() + 0.5);
+            net.minecraft.util.math.Box box = new net.minecraft.util.math.Box(
+                anchorPos.x - 0.5, anchorPos.y - 0.5, anchorPos.z - 0.5,
+                anchorPos.x + 0.5, anchorPos.y + 0.5, anchorPos.z + 0.5
+            );
+
+            java.util.Optional<net.minecraft.util.math.Vec3d> hit = box.raycast(cameraPos, end);
+            if (hit.isPresent()) {
+                double distSq = cameraPos.squaredDistanceTo(hit.get());
+                if (distSq < minDistanceSq) {
+                    minDistanceSq = distSq;
+                    closest = a;
+                }
             }
         }
+        return closest;
+    }
+
+    private static void handleInteraction(PlayerEntity player, BlockPos pos) {
+        // 首先通过视线射线精确查找目标锚点
+        Anchor anchor = getTargetedAnchor(player);
+        
+        // 兜底：如果射线没有击中，则回退到严格的坐标匹配
+        if (anchor == null) {
+            for (Anchor a : AnchorClientRepository.getAll()) {
+                if (a.pos.equals(pos)) {
+                    anchor = a;
+                    break;
+                }
+            }
+        }
+
+        // 如果判定玩家点击的是某个已知锚点，同步操作的 BlockPos
+        if (anchor != null) {
+            pos = anchor.pos;
+        }
+
 
         UUID uuid = player.getUuid();
         if (anchor != null) {

@@ -22,11 +22,11 @@ import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
  */
 public class ScoutAnchorTool extends MCPTool {
 
-  // 勘察用的临时 Clip 使用高 Layer（10），覆盖其他轨道，tick 0-2（3帧）
-  private static final int SCOUT_LAYER = 10;
+  // 勘察用的临时 Clip 使用高 Layer（20），覆盖其他轨道，tick 0-5
+  private static final int SCOUT_LAYER = 20;
   private static final int SCOUT_TICK_START = 0;
-  private static final int SCOUT_DURATION = 3;
-  private static final int SCOUT_CAPTURE_TICK = 1;
+  private static final int SCOUT_DURATION = 5;
+  private static final int SCOUT_CAPTURE_TICK = 3;
 
   public ScoutAnchorTool() {
     super("scout_anchor",
@@ -78,6 +78,8 @@ public class ScoutAnchorTool extends MCPTool {
     if (player == null) {
       return MCPToolResponse.error(BBSMCPError.PLAYER_NOT_ONLINE.format(), BBSMCPError.PLAYER_NOT_ONLINE.getHint());
     }
+    
+    ServerNetwork.requestClientOpenFilmPanelPacket(player, filmId);
 
     Anchor anchor = AnchorManager.INSTANCE.get(anchorId);
     if (anchor == null) {
@@ -117,21 +119,23 @@ public class ScoutAnchorTool extends MCPTool {
             "tick": %d,
             "duration": %d,
             "layer": %d,
-            "x": %f,
-            "y": %f,
-            "z": %f,
-            "yaw": %f,
-            "pitch": %f
+            "position": {
+              "point": { "x": %f, "y": %f, "z": %f },
+              "angle": { "yaw": %f, "pitch": %f, "roll": 0.0, "fov": 70.0 }
+            }
           }
           """, clipCountBefore, SCOUT_TICK_START, SCOUT_DURATION, SCOUT_LAYER, cx, cy, cz, yaw, pitch);
 
       try {
-        ServerNetwork.requestClientOpenFilmPanelPacket(player, filmId);
         // 写入勘察 Clip
         ClipManagerAPI.addClip(player, filmId, clipJson);
 
+        String timestamp = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
+        String filename = String.format("scout_%d_%s_t%d.png", anchorId, timestamp, SCOUT_CAPTURE_TICK);
+
         // 快速截图（不等待自然播放，使用 start_tick=0 快速预览）
-        String screenshotPath = FilmManagerAPI.captureScreenshot(player, SCOUT_CAPTURE_TICK, SCOUT_TICK_START).get();
+        FilmManagerAPI.captureScreenshot(player, filename, SCOUT_CAPTURE_TICK, SCOUT_TICK_START).get();
+        String screenshotPath = "config/bbsmcp/screenshot/" + filename;
 
         // 删除刚写入的临时 Clip
         int currentSize = FilmManagerAPI.INSTANCE.getFilm(filmId).camera.get().size();
