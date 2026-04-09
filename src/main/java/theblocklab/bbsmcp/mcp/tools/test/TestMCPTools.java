@@ -8,5 +8,6 @@ public class TestMCPTools extends MCPToolProvider {
         registerTool(new ReplayTestTool());
         registerTool(new SetupEnvTestTool());
         registerTool(new AnchorTestTool());
+        registerTool(new TestBuildingTool());
     }
 }

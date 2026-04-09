@@ -34,9 +34,11 @@ public class ServerNetwork {
     public static final Identifier CLIENT_SAVE_FILM = new Identifier("bbsmcp", "client_save_film");
     public static final Identifier CLIENT_CAPTURE_SCREENSHOT = new Identifier("bbsmcp", "client_capture_screenshot");
 
-    // === AI building 相关 Identifier ===
-    public static final Identifier GENERATE_BUILDING_C2S = new Identifier("bbsmcp", "generate_building");
-    public static final Identifier BUILDING_PROGRESS_S2C = new Identifier("bbsmcp", "building_progress");
+    // === AI Building 系统 ===
+    public static final Identifier S2C_BUILDING_PREVIEW = new Identifier("bbsmcp", "s2c_building_preview");
+    public static final Identifier S2C_BUILDING_CLEAR   = new Identifier("bbsmcp", "s2c_building_clear");
+    public static final Identifier C2S_BUILDING_PLACE   = new Identifier("bbsmcp", "c2s_building_place");
+
 
     // === Anchor 锚点系统 ===
     public static final Identifier S2C_ANCHOR_LIST = new Identifier("bbsmcp", "s2c_anchor_list");
@@ -210,5 +212,20 @@ public class ServerNetwork {
         return ServerRequestBridge.requestData(player, CLIENT_GET_CURSOR, buf -> {
             buf.writeString(filmId);
         });
+    }
+
+    // ── AI Building 辅助方法 ─────────────────────────────────────────────────
+
+    /** 向客户端下发建筑蓝图 JSON，激活虚影预览 */
+    public static void sendBuildingPreview(ServerPlayerEntity player, String blueprintJson, String name) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeString(name);
+        buf.writeString(blueprintJson);
+        ServerPlayNetworking.send(player, S2C_BUILDING_PREVIEW, buf);
+    }
+
+    /** 通知客户端清除建筑预览虚影 */
+    public static void sendBuildingClear(ServerPlayerEntity player) {
+        ServerPlayNetworking.send(player, S2C_BUILDING_CLEAR, PacketByteBufs.create());
     }
 }

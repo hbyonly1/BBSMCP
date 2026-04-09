@@ -9,6 +9,7 @@ import theblocklab.bbsmcp.anchor.AnchorServerNetwork;
 import theblocklab.bbsmcp.mcp.MCPServerImpl;
 import theblocklab.bbsmcp.mcp.prompts.MCPPrompts;
 import theblocklab.bbsmcp.mcp.tools.anchor.AnchorMCPTools;
+import theblocklab.bbsmcp.mcp.tools.building.BuildingMCPTools;
 import theblocklab.bbsmcp.mcp.tools.clip.ClipManagerMCPTools;
 import theblocklab.bbsmcp.mcp.tools.film.FilmManagerMCPTools;
 import theblocklab.bbsmcp.mcp.tools.replay.ReplayMCPTools;
@@ -33,6 +34,11 @@ public class BBSMCP implements ModInitializer {
 		// 注册锚点管理器生命周期（服务器启动时加载锚点数据）
 		AnchorManager.register();
 
+		// 注册建筑魔杖
+		theblocklab.bbsmcp.building.BuildingWandItem.register();
+		// 注册建筑放置服务端处理器
+		theblocklab.bbsmcp.building.BuildingServerHandler.setup();
+
 		// 创建示例文件
 		try {
 			theblocklab.bbsmcp.film.clips.utils.ClipFileLoader.createExampleFile();
@@ -53,6 +59,7 @@ public class BBSMCP implements ModInitializer {
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new ReplayMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new TestMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new AnchorMCPTools());
+			MCPServerImpl.INSTANCE.getRouter().registerProvider(new BuildingMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerPromptProvider(new MCPPrompts());
 
 			LOGGER.info("BBS MCP Server Hook Registered");
