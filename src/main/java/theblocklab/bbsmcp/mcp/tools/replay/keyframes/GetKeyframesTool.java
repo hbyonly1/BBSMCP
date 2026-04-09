@@ -7,7 +7,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
 import theblocklab.bbsmcp.film.FilmManagerAPI;
-import theblocklab.bbsmcp.film.clips.ClipManagerAPI;
 import theblocklab.bbsmcp.film.replays.ReplayManagerAPI;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
@@ -48,7 +47,9 @@ public class GetKeyframesTool extends MCPTool {
         int replayIndex = requireInt(arguments, "replayIndex");
 
         ServerPlayerEntity player = getFirstOnlinePlayer(server);
-        if (player == null) return MCPToolResponse.error(BBSMCPError.PLAYER_NOT_ONLINE.format(), BBSMCPError.PLAYER_NOT_ONLINE.getHint());
+        if (player == null)
+            return MCPToolResponse.error(BBSMCPError.PLAYER_NOT_ONLINE.format(),
+                    BBSMCPError.PLAYER_NOT_ONLINE.getHint());
 
         try {
             FilmManagerAPI.requestClientSaveFilm(player, filmId).join();
@@ -61,7 +62,7 @@ public class GetKeyframesTool extends MCPTool {
                 }
             }
             float fromTick = arguments.has("fromTick") ? arguments.get("fromTick").getAsFloat() : -1;
-            float toTick   = arguments.has("toTick")   ? arguments.get("toTick").getAsFloat()   : -1;
+            float toTick = arguments.has("toTick") ? arguments.get("toTick").getAsFloat() : -1;
 
             String result = ReplayManagerAPI.getKeyframes(filmId, replayIndex, channels, fromTick, toTick);
             return MCPToolResponse.success(result);

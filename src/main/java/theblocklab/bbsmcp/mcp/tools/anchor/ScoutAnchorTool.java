@@ -30,7 +30,7 @@ public class ScoutAnchorTool extends MCPTool {
 
   public ScoutAnchorTool() {
     super("scout_anchor",
-        "AI 导演勘察工具：围绕指定 Anchor，在自主选定的候选摄像机坐标上临时创建 Clip 并快速截图，返回截图结果供 AI 分析并选定最佳视角。勘察完成后临时 Clip 会自动删除，不影响正式时间轴。");
+        "AI 导演勘察工具：围绕指定 Anchor，在自主选定的候选摄像机坐标上临时创建 Clip 并截图，将会返回截图的绝对物理路径，不需要搜索环节！供 AI 分析并选定最佳视角。");
   }
 
   @Override
@@ -78,8 +78,6 @@ public class ScoutAnchorTool extends MCPTool {
     if (player == null) {
       return MCPToolResponse.error(BBSMCPError.PLAYER_NOT_ONLINE.format(), BBSMCPError.PLAYER_NOT_ONLINE.getHint());
     }
-    
-    ServerNetwork.requestClientOpenFilmPanelPacket(player, filmId);
 
     Anchor anchor = AnchorManager.INSTANCE.get(anchorId);
     if (anchor == null) {
@@ -92,9 +90,10 @@ public class ScoutAnchorTool extends MCPTool {
 
     // 前置保存，确保 Film 状态最新
     try {
+      ServerNetwork.requestClientOpenFilmPanelPacket(player, filmId).join();
       FilmManagerAPI.requestClientSaveFilm(player, filmId).join();
     } catch (Exception e) {
-      return MCPToolResponse.error("保存 Film 失败: " + e.getMessage(), "请确认 Film 已打开且 ID 正确。");
+      return MCPToolResponse.error("打开并保存 Film 失败: " + e.getMessage(), "请确认 Film ID 正确。");
     }
 
     // 获取当前 Clip 总数量（用于后续删除临时 Clip 的索引）

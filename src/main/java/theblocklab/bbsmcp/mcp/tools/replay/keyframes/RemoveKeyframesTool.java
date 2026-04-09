@@ -7,7 +7,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
 import theblocklab.bbsmcp.film.FilmManagerAPI;
-import theblocklab.bbsmcp.film.clips.ClipManagerAPI;
 import theblocklab.bbsmcp.film.replays.ReplayManagerAPI;
 import theblocklab.bbsmcp.mcp.core.MCPTool;
 import theblocklab.bbsmcp.mcp.core.MCPToolResponse;
@@ -49,7 +48,9 @@ public class RemoveKeyframesTool extends MCPTool {
         int replayIndex = requireInt(arguments, "replayIndex");
 
         ServerPlayerEntity player = getFirstOnlinePlayer(server);
-        if (player == null) return MCPToolResponse.error(BBSMCPError.PLAYER_NOT_ONLINE.format(), BBSMCPError.PLAYER_NOT_ONLINE.getHint());
+        if (player == null)
+            return MCPToolResponse.error(BBSMCPError.PLAYER_NOT_ONLINE.format(),
+                    BBSMCPError.PLAYER_NOT_ONLINE.getHint());
 
         try {
             FilmManagerAPI.requestClientSaveFilm(player, filmId).join();
@@ -57,12 +58,13 @@ public class RemoveKeyframesTool extends MCPTool {
             List<String> channels = null;
             if (arguments.has("channels")) {
                 channels = new ArrayList<>();
-                for (var e : arguments.getAsJsonArray("channels")) channels.add(e.getAsString());
+                for (var e : arguments.getAsJsonArray("channels"))
+                    channels.add(e.getAsString());
             }
 
-            float fromTick  = arguments.has("fromTick") ? arguments.get("fromTick").getAsFloat() : -1;
-            float toTick    = arguments.has("toTick")   ? arguments.get("toTick").getAsFloat()   : -1;
-            float exactTick = arguments.has("tick")     ? arguments.get("tick").getAsFloat()     : -1;
+            float fromTick = arguments.has("fromTick") ? arguments.get("fromTick").getAsFloat() : -1;
+            float toTick = arguments.has("toTick") ? arguments.get("toTick").getAsFloat() : -1;
+            float exactTick = arguments.has("tick") ? arguments.get("tick").getAsFloat() : -1;
 
             ReplayManagerAPI.removeKeyframes(player, filmId, replayIndex, channels, fromTick, toTick, exactTick);
             return MCPToolResponse.success("关键帧删除成功，已同步到客户端。");
