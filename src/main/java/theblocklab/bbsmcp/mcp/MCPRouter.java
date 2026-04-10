@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.server.MinecraftServer;
 import theblocklab.bbsmcp.mcp.core.MCPPromptProvider;
+import theblocklab.bbsmcp.mcp.core.MCPResourceProvider;
 import theblocklab.bbsmcp.mcp.core.MCPToolProvider;
 
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ public class MCPRouter {
 
     private final List<MCPToolProvider> providers = new ArrayList<>();
     private final List<MCPPromptProvider> promptProviders = new ArrayList<>();
+    private final List<MCPResourceProvider> resourceProviders = new ArrayList<>();
     private final MinecraftServer server;
 
     public MCPRouter(MinecraftServer server) {
@@ -36,6 +38,13 @@ public class MCPRouter {
      */
     public void registerPromptProvider(MCPPromptProvider provider) {
         this.promptProviders.add(provider);
+    }
+
+    /**
+     * 注册一个新的资源提供者
+     */
+    public void registerResourceProvider(MCPResourceProvider provider) {
+        this.resourceProviders.add(provider);
     }
 
     /**
@@ -76,6 +85,10 @@ public class MCPRouter {
                 return CompletableFuture.completedFuture(handlePromptsList(id));
             } else if ("prompts/get".equals(method)) {
                 return CompletableFuture.completedFuture(handlePromptsGet(id, request.getAsJsonObject("params")));
+            } else if ("resources/list".equals(method)) {
+                return CompletableFuture.completedFuture(handleResourcesList(id));
+            } else if ("resources/read".equals(method)) {
+                return CompletableFuture.completedFuture(handleResourcesRead(id, request.getAsJsonObject("params")));
             } else {
                 return CompletableFuture.completedFuture(buildErrorResponse(id, -32601, "Method not found: " + method));
             }
@@ -99,6 +112,7 @@ public class MCPRouter {
         JsonObject capabilities = new JsonObject();
         capabilities.add("tools", new JsonObject());
         capabilities.add("prompts", new JsonObject());
+        capabilities.add("resources", new JsonObject());
         result.add("capabilities", capabilities);
 
         return buildSuccessResponse(id, result);
@@ -254,5 +268,43 @@ public class MCPRouter {
         }
 
         return buildErrorResponse(id, -32601, "Prompt not found: " + promptName);
+    }
+
+    private String handleResourcesList(Object id) {
+        JsonArray resourcesArray = new JsonArray();
+        for (MCPResourceProvider provider : resourceProviders) {
+            JsonArray defs = provider.getResourceDefinitions();
+            if (defs != null) {
+                for (int i = 0; i < defs.size(); i++) {
+                    resourcesArray.add(defs.get(i));
+                }
+            }
+        }
+
+        JsonObject result = new JsonObject();
+        result.add("resources", resourcesArray);
+        return buildSuccessResponse(id, result);
+    }
+
+    private String handleResourcesRead(Object id, JsonObject params) {
+        if (params == null || !params.has("uri")) {
+            return buildErrorResponse(id, -32602, "Invalid params: missing uri");
+        }
+
+        String uri = params.get("uri").getAsString();
+
+        for (MCPResourceProvider provider : resourceProviders) {
+            JsonObject content = provider.readResource(uri);
+            if (content != null) {
+                JsonArray contentsArray = new JsonArray();
+                contentsArray.add(content);
+
+                JsonObject result = new JsonObject();
+                result.add("contents", contentsArray);
+                return buildSuccessResponse(id, result);
+            }
+        }
+
+        return buildErrorResponse(id, -32601, "Resource not found: " + uri);
     }
 }

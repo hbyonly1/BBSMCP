@@ -8,6 +8,7 @@ import theblocklab.bbsmcp.anchor.AnchorServerEvent;
 import theblocklab.bbsmcp.anchor.AnchorServerNetwork;
 import theblocklab.bbsmcp.mcp.MCPServerImpl;
 import theblocklab.bbsmcp.mcp.prompts.MCPPrompts;
+import theblocklab.bbsmcp.mcp.resources.MCPResources;
 import theblocklab.bbsmcp.mcp.tools.anchor.AnchorMCPTools;
 import theblocklab.bbsmcp.mcp.tools.building.BuildingMCPTools;
 import theblocklab.bbsmcp.mcp.tools.clip.ClipManagerMCPTools;
@@ -61,6 +62,7 @@ public class BBSMCP implements ModInitializer {
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new AnchorMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new BuildingMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerPromptProvider(new MCPPrompts());
+			MCPServerImpl.INSTANCE.getRouter().registerResourceProvider(new MCPResources());
 
 			LOGGER.info("BBS MCP Server Hook Registered");
 		});
