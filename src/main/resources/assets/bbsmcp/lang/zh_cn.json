@@ -1,5 +1,9 @@
 {
   "item.bbsmcp.anchor_wand": "§a锚点魔杖",
   "item.bbsmcp.anchor_wand.tooltip1": "§7左键：切换锚点可见性",
-  "item.bbsmcp.anchor_wand.tooltip2": "§7右键：创建/删除锚点"
+  "item.bbsmcp.anchor_wand.tooltip2": "§7右键：创建/删除锚点",
+  "item.bbsmcp.building_wand": "§e建筑魔杖",
+  "item.bbsmcp.building_wand.tooltip1": "§7左键：§f旋转建筑朝向 (+90°)",
+  "item.bbsmcp.building_wand.tooltip2": "§7右键：§f确认放置预览建筑",
+  "item.bbsmcp.building_wand.tooltip3": "§7需先通过 §bload_building §7加载蓝图"
 }

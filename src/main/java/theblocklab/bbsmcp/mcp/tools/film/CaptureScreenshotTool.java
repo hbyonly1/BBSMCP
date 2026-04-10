@@ -50,8 +50,10 @@ public class CaptureScreenshotTool extends MCPTool {
             String timestamp = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
             String filename = String.format("bbs_mcp_t%d_%s.png", targetTick, timestamp);
             FilmManagerAPI.captureScreenshot(player, filename, targetTick, startTick).get();
-            String path = "config/bbsmcp/screenshot/" + filename;
-            return MCPToolResponse.success("截图成功！", "文件已保存至: " + path);
+            
+            java.io.File file = new java.io.File("config/bbsmcp/screenshot/" + filename);
+            String absolutePath = file.getAbsolutePath();
+            return MCPToolResponse.success("截图成功！", "文件已保存至: " + absolutePath);
         } catch (Exception e) {
             return MCPToolResponse.error("截图请求失败: " + e.getMessage(), "请确保客户端已打开 Film 面板并处于可点击状态。");
         }

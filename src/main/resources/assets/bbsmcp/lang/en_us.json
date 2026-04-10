@@ -1,5 +1,9 @@
 {
   "item.bbsmcp.anchor_wand": "§aAnchor Wand",
   "item.bbsmcp.anchor_wand.tooltip1": "§7Left-click: Toggle visibility",
-  "item.bbsmcp.anchor_wand.tooltip2": "§7Right-click: Create/Delete anchor"
+  "item.bbsmcp.anchor_wand.tooltip2": "§7Right-click: Create/Delete anchor",
+  "item.bbsmcp.building_wand": "§eBuilding Wand",
+  "item.bbsmcp.building_wand.tooltip1": "§7Left-click: §fRotate orientation (+90°)",
+  "item.bbsmcp.building_wand.tooltip2": "§7Right-click: §fConfirm and place blueprint",
+  "item.bbsmcp.building_wand.tooltip3": "§7Must load blueprint via §bload_building §7first"
 }

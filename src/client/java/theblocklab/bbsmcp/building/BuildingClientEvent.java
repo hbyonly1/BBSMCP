@@ -52,7 +52,7 @@ public class BuildingClientEvent {
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
             if (!world.isClient || hand != Hand.MAIN_HAND) return ActionResult.PASS;
             if (!isHoldingWand(player)) return ActionResult.PASS;
-            if (BuildingClientRepository.isEmpty()) return ActionResult.PASS;
+            if (BuildingClientRepository.isEmpty()) return ActionResult.FAIL;
             return ActionResult.FAIL;
         });
 

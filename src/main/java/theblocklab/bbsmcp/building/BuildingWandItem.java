@@ -32,9 +32,9 @@ public class BuildingWandItem extends Item {
 
     @Override
     public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
-        tooltip.add(Text.literal("§7左键：§f旋转建筑朝向 (+90°)"));
-        tooltip.add(Text.literal("§7右键：§f确认放置预览建筑"));
-        tooltip.add(Text.literal("§7需先通过 §bload_building §7加载蓝图"));
+        tooltip.add(Text.translatable("item.bbsmcp.building_wand.tooltip1"));
+        tooltip.add(Text.translatable("item.bbsmcp.building_wand.tooltip2"));
+        tooltip.add(Text.translatable("item.bbsmcp.building_wand.tooltip3"));
     }
 
     /** 注册物品到游戏注册表 */
