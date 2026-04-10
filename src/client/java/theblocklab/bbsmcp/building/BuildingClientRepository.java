@@ -13,8 +13,8 @@ import net.minecraft.util.math.BlockPos;
 @Environment(EnvType.CLIENT)
 public class BuildingClientRepository {
 
-    /** 玩家前方预览最大距离（格） */
-    public static final double MAX_PREVIEW_DISTANCE = 10.0;
+    /** 玩家前方预览距离（格），可动态调节 */
+    public static double previewDistance = 10.0;
 
     public static BuildingBlueprint current = null;
     public static String currentName = "";
@@ -37,12 +37,12 @@ public class BuildingClientRepository {
     }
 
     /**
-     * 进行视线追踪计算预览原点。最大距离 MAX_PREVIEW_DISTANCE。
+     * 进行视线追踪计算预览原点。最大距离 previewDistance。
      * 如果击中方块，则原点为被击中方块根据击中面偏移后的坐标（吸附在表面）。
      * 如果未击中，则原点为视线终点的整数坐标。
      */
     public static BlockPos getPreviewOrigin(PlayerEntity player) {
-        net.minecraft.util.hit.HitResult hit = player.raycast(MAX_PREVIEW_DISTANCE, 1.0F, false);
+        net.minecraft.util.hit.HitResult hit = player.raycast(previewDistance, 1.0F, false);
         if (hit.getType() == net.minecraft.util.hit.HitResult.Type.BLOCK) {
             net.minecraft.util.hit.BlockHitResult blockHit = (net.minecraft.util.hit.BlockHitResult) hit;
             return blockHit.getBlockPos().offset(blockHit.getSide());

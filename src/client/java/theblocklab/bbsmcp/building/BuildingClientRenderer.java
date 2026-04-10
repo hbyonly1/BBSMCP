@@ -6,14 +6,17 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import theblocklab.bbsmcp.utils.RenderUtils;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.render.OverlayTexture;
+import net.minecraft.client.render.LightmapTextureManager;
+import net.minecraft.client.render.block.BlockRenderManager;
+import net.minecraft.registry.Registries;
+import net.minecraft.util.Identifier;
 
 import java.util.List;
 
@@ -24,12 +27,6 @@ import java.util.List;
  */
 @Environment(EnvType.CLIENT)
 public class BuildingClientRenderer {
-
-    private static final float EXPAND = 0.003f;
-    // 线框颜色：绿色
-    private static final float R = 0.3f, G = 1.0f, B = 0.3f, A = 1.0f;
-    // 填充色：半透明绿色
-    private static final float FR = 0.2f, FG = 0.9f, FB = 0.2f, FA = 0.15f;
 
     public static void register() {
         WorldRenderEvents.LAST.register(BuildingClientRenderer::render);
@@ -57,8 +54,8 @@ public class BuildingClientRenderer {
         // 展开所有方块坐标（fills + blocks，含旋转变换）
         List<BuildingBlueprint.PlacedBlock> placed = blueprint.getAbsoluteBlocks(origin, rotation);
 
-        VertexConsumer lineConsumer = consumers.getBuffer(RenderLayer.getLines());
-        VertexConsumer faceConsumer = consumers.getBuffer(RenderLayer.getGuiOverlay());
+        BlockRenderManager blockRenderManager = client.getBlockRenderManager();
+        int light = LightmapTextureManager.MAX_LIGHT_COORDINATE;
 
         for (var pb : placed) {
             BlockPos pos = pb.pos();
@@ -66,20 +63,18 @@ public class BuildingClientRenderer {
             double dy = pos.getY() - camPos.y;
             double dz = pos.getZ() - camPos.z;
 
+            // 获取真实的方块状态
+            String blockId = BuildingBlueprint.normalizeBlockId(pb.blockId());
+            Identifier id = Identifier.tryParse(blockId);
+            if (id == null) continue;
+            
+            BlockState state = Registries.BLOCK.get(id).getDefaultState();
+
             matrices.push();
             matrices.translate(dx, dy, dz);
 
-            // 半透明面填充
-            RenderUtils.drawFilledBox(matrices, faceConsumer,
-                -EXPAND, -EXPAND, -EXPAND,
-                1 + EXPAND, 1 + EXPAND, 1 + EXPAND,
-                FR, FG, FB, FA);
-
-            // 线框
-            RenderUtils.drawOutlineBox(matrices, lineConsumer,
-                -EXPAND, -EXPAND, -EXPAND,
-                1 + EXPAND, 1 + EXPAND, 1 + EXPAND,
-                R, G, B, A);
+            // 渲染为实体方块（自带真实贴图、模型结构，如楼梯等将完美呈现）
+            blockRenderManager.renderBlockAsEntity(state, matrices, consumers, light, OverlayTexture.DEFAULT_UV);
 
             matrices.pop();
         }

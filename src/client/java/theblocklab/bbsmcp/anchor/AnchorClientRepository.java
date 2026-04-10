@@ -4,7 +4,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -23,25 +22,25 @@ public class AnchorClientRepository {
 
     // ────────── CRUD ──────────
 
-    public static void clear() {
+    public static synchronized void clear() {
         anchors.clear();
     }
 
-    public static void put(Anchor anchor) {
+    public static synchronized void put(Anchor anchor) {
         anchors.put(anchor.id, anchor);
     }
 
-    public static void remove(int id) {
+    public static synchronized void remove(int id) {
         anchors.remove(id);
     }
 
     // ────────── 查询 ──────────
 
-    public static Collection<Anchor> getAll() {
-        return Collections.unmodifiableCollection(anchors.values());
+    public static synchronized Collection<Anchor> getAll() {
+        return java.util.List.copyOf(anchors.values());
     }
 
-    public static Anchor get(int id) {
+    public static synchronized Anchor get(int id) {
         return anchors.get(id);
     }
 
