@@ -5,5 +5,9 @@
   "item.bbsmcp.building_wand": "§e建筑魔杖",
   "item.bbsmcp.building_wand.tooltip1": "§7左键：§f旋转建筑朝向 (+90°)",
   "item.bbsmcp.building_wand.tooltip2": "§7右键：§f确认放置预览建筑",
-  "item.bbsmcp.building_wand.tooltip3": "§7需先通过 §bload_building §7加载蓝图"
+  "item.bbsmcp.building_wand.tooltip3": "§7需先通过 §bload_building §7加载蓝图",
+  "item.bbsmcp.region_wand": "§6区域魔杖",
+  "item.bbsmcp.region_wand.tooltip1": "§7左键方块：§f设置 Pos1",
+  "item.bbsmcp.region_wand.tooltip2": "§7右键：§f设置 Pos2",
+  "item.bbsmcp.region_wand.tooltip3": "§7配合 §bget_region_selection §7与 §bedit__region §7使用"
 }

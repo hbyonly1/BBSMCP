@@ -1,5 +1,7 @@
 package theblocklab.bbsmcp.mcp.tools.anchor;
 
+import java.io.File;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -134,7 +136,8 @@ public class ScoutAnchorTool extends MCPTool {
 
         // 快速截图（不等待自然播放，使用 start_tick=0 快速预览）
         FilmManagerAPI.captureScreenshot(player, filename, SCOUT_CAPTURE_TICK, SCOUT_TICK_START).get();
-        String screenshotPath = "config/bbsmcp/screenshot/" + filename;
+        File file = new File("config/bbsmcp/screenshot/" + filename);
+        String screenshotPath = file.getAbsolutePath();
 
         // 删除刚写入的临时 Clip
         int currentSize = FilmManagerAPI.INSTANCE.getFilm(filmId).camera.get().size();

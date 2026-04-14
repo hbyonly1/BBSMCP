@@ -8,6 +8,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import theblocklab.bbsmcp.BBSMCP;
+import theblocklab.bbsmcp.utils.JsonFormatUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -64,7 +65,7 @@ public class AnchorManager {
         for (Anchor anchor : anchors.values()) {
             array.add(anchor.toJson());
         }
-        return array.toString();
+        return JsonFormatUtils.pretty(array.toString());
     }
 
     // ────────── CRUD ──────────

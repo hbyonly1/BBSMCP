@@ -1,6 +1,9 @@
 package theblocklab.bbsmcp.mcp.core;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import theblocklab.bbsmcp.utils.JsonFormatUtils;
 
 /**
  * 封装工具执行的结果。
@@ -8,6 +11,7 @@ import com.google.gson.JsonObject;
  * 并在失败时能够触发其自我修复机制。
  */
 public class MCPToolResponse {
+    private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
     private final String status;
     private final String message;
     private final String details; // 提供给 AI 的行动建议或详细说明
@@ -45,9 +49,9 @@ public class MCPToolResponse {
     public JsonObject toJson() {
         JsonObject obj = new JsonObject();
         obj.addProperty("status", this.status);
-        obj.addProperty("message", this.message);
+        obj.addProperty("message", JsonFormatUtils.pretty(this.message));
         if (this.details != null) {
-            obj.addProperty("details", this.details);
+            obj.addProperty("details", JsonFormatUtils.pretty(this.details));
         }
         return obj;
     }
@@ -56,7 +60,7 @@ public class MCPToolResponse {
      * 转换为 JSON 格式的字符串返回给 AI
      */
     public String toJsonString() {
-        return toJson().toString();
+        return PRETTY_GSON.toJson(toJson());
     }
 
     public boolean isError() {

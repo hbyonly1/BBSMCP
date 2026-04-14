@@ -39,6 +39,12 @@ public class ServerNetwork {
     public static final Identifier S2C_BUILDING_CLEAR   = new Identifier("bbsmcp", "s2c_building_clear");
     public static final Identifier C2S_BUILDING_PLACE   = new Identifier("bbsmcp", "c2s_building_place");
 
+    // === Region 编辑系统 ===
+    public static final Identifier C2S_REGION_SET_POS1 = new Identifier("bbsmcp", "c2s_region_set_pos1");
+    public static final Identifier C2S_REGION_SET_POS2 = new Identifier("bbsmcp", "c2s_region_set_pos2");
+    public static final Identifier S2C_REGION_PREVIEW = new Identifier("bbsmcp", "s2c_region_preview");
+    public static final Identifier S2C_REGION_CLEAR_PREVIEW = new Identifier("bbsmcp", "s2c_region_clear_preview");
+
 
     // === Anchor 锚点系统 ===
     public static final Identifier S2C_ANCHOR_LIST = new Identifier("bbsmcp", "s2c_anchor_list");

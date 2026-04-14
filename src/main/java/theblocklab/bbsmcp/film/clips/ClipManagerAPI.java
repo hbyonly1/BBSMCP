@@ -9,6 +9,7 @@ import theblocklab.bbsmcp.film.clips.utils.ClipDataConverter;
 import theblocklab.bbsmcp.film.clips.utils.ClipShiftValidator;
 import theblocklab.bbsmcp.film.clips.utils.ClipValidationChecker;
 import theblocklab.bbsmcp.network.ServerNetwork;
+import theblocklab.bbsmcp.utils.JsonFormatUtils;
 
 import mchorse.bbs_mod.data.DataParser;
 import mchorse.bbs_mod.data.types.BaseType;
@@ -105,7 +106,7 @@ public class ClipManagerAPI {
         for (int i = 0; i < clips.size(); i++) {
             array.add(ClipDataConverter.convertClipToJson(clips.get(i), i));
         }
-        return array.toString();
+        return JsonFormatUtils.pretty(array.toString());
     }
 
     /**
@@ -118,7 +119,7 @@ public class ClipManagerAPI {
         if (clip == null) {
             throw new BBSMCPException(BBSMCPError.CLIP_NOT_FOUND, index);
         }
-        return ClipDataConverter.convertClipToJson(clip, index).toString();
+        return JsonFormatUtils.pretty(ClipDataConverter.convertClipToJson(clip, index).toString());
     }
 
     /**
@@ -136,7 +137,7 @@ public class ClipManagerAPI {
             int realIndex = film.camera.getIndex(clip);
             array.add(ClipDataConverter.convertClipToJson(clip, realIndex));
         }
-        return array.toString();
+        return JsonFormatUtils.pretty(array.toString());
     }
 
     /**
@@ -153,7 +154,7 @@ public class ClipManagerAPI {
                 array.add(ClipDataConverter.convertClipToJson(clip, i));
             }
         }
-        return array.toString();
+        return JsonFormatUtils.pretty(array.toString());
     }
 
     /**
@@ -167,7 +168,7 @@ public class ClipManagerAPI {
             throw new BBSMCPException(BBSMCPError.CLIP_NOT_FOUND, tick);
         }
         int realIndex = film.camera.getIndex(clip);
-        return ClipDataConverter.convertClipToJson(clip, realIndex).toString();
+        return JsonFormatUtils.pretty(ClipDataConverter.convertClipToJson(clip, realIndex).toString());
     }
 
     /**

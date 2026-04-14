@@ -8,6 +8,7 @@ import theblocklab.bbsmcp.mcp.core.MCPToolProvider;
 public class BuildingMCPTools extends MCPToolProvider {
     public BuildingMCPTools() {
         registerTool(new LoadBuildingTool());
+        registerTool(new GetBuildingListTool());
         registerTool(new GiveBuildingWandTool());
     }
 }

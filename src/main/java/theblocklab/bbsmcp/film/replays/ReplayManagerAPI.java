@@ -18,6 +18,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
 import theblocklab.bbsmcp.film.FilmManagerAPI;
+import theblocklab.bbsmcp.utils.JsonFormatUtils;
 
 /**
  * Replay 管理器——参照 ClipManagerAPI 的设计风格
@@ -67,7 +68,7 @@ public class ReplayManagerAPI {
             JsonObject obj = buildReplayMeta(replay, i);
             array.add(obj);
         }
-        return array.toString();
+        return JsonFormatUtils.pretty(array.toString());
     }
 
     /**
@@ -76,7 +77,7 @@ public class ReplayManagerAPI {
     public static String getReplayByIndex(String filmId, int index) {
         Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
         Replay replay = getReplay(film, filmId, index);
-        return buildReplayMeta(replay, index).toString();
+        return JsonFormatUtils.pretty(buildReplayMeta(replay, index).toString());
     }
 
     /**
@@ -122,7 +123,7 @@ public class ReplayManagerAPI {
             }
             result.add(channelId, frames);
         }
-        return result.toString();
+        return JsonFormatUtils.pretty(result.toString());
     }
 
     // ────────────── 写入 ──────────────

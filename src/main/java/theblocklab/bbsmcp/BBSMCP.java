@@ -13,9 +13,12 @@ import theblocklab.bbsmcp.mcp.tools.anchor.AnchorMCPTools;
 import theblocklab.bbsmcp.mcp.tools.building.BuildingMCPTools;
 import theblocklab.bbsmcp.mcp.tools.clip.ClipManagerMCPTools;
 import theblocklab.bbsmcp.mcp.tools.film.FilmManagerMCPTools;
+import theblocklab.bbsmcp.mcp.tools.region.RegionMCPTools;
 import theblocklab.bbsmcp.mcp.tools.replay.ReplayMCPTools;
 import theblocklab.bbsmcp.mcp.tools.test.TestMCPTools;
 import theblocklab.bbsmcp.mcp.tools.ui.UIMCPTools;
+import theblocklab.bbsmcp.region.RegionServerNetwork;
+import theblocklab.bbsmcp.region.RegionWandItem;
 
 public class BBSMCP implements ModInitializer {
 	public static final String MOD_ID = "bbsmcp";
@@ -40,6 +43,10 @@ public class BBSMCP implements ModInitializer {
 		// 注册建筑放置服务端处理器
 		theblocklab.bbsmcp.building.BuildingServerHandler.setup();
 
+		// 注册区域编辑魔杖与网络
+		RegionWandItem.register();
+		RegionServerNetwork.setup();
+
 		// 创建示例文件
 		try {
 			theblocklab.bbsmcp.film.clips.utils.ClipFileLoader.createExampleFile();
@@ -61,6 +68,7 @@ public class BBSMCP implements ModInitializer {
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new TestMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new AnchorMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new BuildingMCPTools());
+			MCPServerImpl.INSTANCE.getRouter().registerProvider(new RegionMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerPromptProvider(new MCPPrompts());
 			MCPServerImpl.INSTANCE.getRouter().registerResourceProvider(new MCPResources());
 

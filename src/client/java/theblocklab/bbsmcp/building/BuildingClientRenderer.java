@@ -15,8 +15,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.render.block.BlockRenderManager;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
 
 import java.util.List;
 
@@ -63,12 +61,8 @@ public class BuildingClientRenderer {
             double dy = pos.getY() - camPos.y;
             double dz = pos.getZ() - camPos.z;
 
-            // 获取真实的方块状态
-            String blockId = BuildingBlueprint.normalizeBlockId(pb.blockId());
-            Identifier id = Identifier.tryParse(blockId);
-            if (id == null) continue;
-            
-            BlockState state = Registries.BLOCK.get(id).getDefaultState();
+            BlockState state = BuildingBlueprint.parseRotatedBlockState(pb.blockSpec(), rotation);
+            if (state == null) continue;
 
             matrices.push();
             matrices.translate(dx, dy, dz);

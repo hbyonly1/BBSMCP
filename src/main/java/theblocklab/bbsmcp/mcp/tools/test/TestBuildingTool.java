@@ -28,6 +28,7 @@ public class TestBuildingTool extends MCPTool {
 
     @Override
     public MCPToolResponse execute(JsonObject arguments, MinecraftServer server) {
+        String buildingName = "test_house";
         String houseJson = """
             {
               "name": "测试小屋",
@@ -43,7 +44,17 @@ public class TestBuildingTool extends MCPTool {
                 [2, 1, 0, "air"],
                 [2, 2, 0, "air"],
                 [2, 1, 4, "glass_pane"],
-                [2, 2, 4, "glass_pane"]
+                [2, 2, 4, "glass_pane"],
+                [0, 5, 0, "oak_stairs[facing=south,half=bottom,shape=straight]"],
+                [1, 5, 0, "oak_stairs[facing=south,half=bottom,shape=straight]"],
+                [2, 5, 0, "oak_stairs[facing=south,half=bottom,shape=straight]"],
+                [3, 5, 0, "oak_stairs[facing=south,half=bottom,shape=straight]"],
+                [4, 5, 0, "oak_stairs[facing=south,half=bottom,shape=straight]"],
+                [0, 5, 4, "oak_stairs[facing=north,half=bottom,shape=straight]"],
+                [1, 5, 4, "oak_stairs[facing=north,half=bottom,shape=straight]"],
+                [2, 5, 4, "oak_stairs[facing=north,half=bottom,shape=straight]"],
+                [3, 5, 4, "oak_stairs[facing=north,half=bottom,shape=straight]"],
+                [4, 5, 4, "oak_stairs[facing=north,half=bottom,shape=straight]"]
               ],
               "anchors": [
                 [2, 1, 2, "室内中心", "位于小屋中央的测试锚点"]
@@ -53,7 +64,9 @@ public class TestBuildingTool extends MCPTool {
 
         LoadBuildingTool loadTool = new LoadBuildingTool();
         JsonObject loadArgs = new JsonObject();
+        loadArgs.addProperty("buildingName", buildingName);
         loadArgs.addProperty("blueprint_json", houseJson);
+        loadArgs.addProperty("overwrite", true);
 
         return loadTool.execute(loadArgs, server);
     }

@@ -51,7 +51,17 @@ public enum BBSMCPError {
     ANCHOR_NOT_FOUND("ANCHOR_001", "锚点 ID %d 不存在",
             "请用 get_anchors 查看已有锚点列表，或确认 ID 拼写"),
     ANCHOR_HINT_NOT_FOUND("ANCHOR_002", "锚点 ID %d 下不存在提示 ID %d",
-            "请先通过 get_anchors 查看该锚点的 camera_hints 列表以获取正确的 hint ID");
+            "请先通过 get_anchors 查看该锚点的 camera_hints 列表以获取正确的 hint ID"),
+
+    // ── Building 文件相关 ───────────────────────────────────────────────────
+    INVALID_BUILDING_NAME("BUILDING_001", "建筑名称 '%s' 非法",
+            "请使用简洁的建筑名，避免仅包含空格或非法路径字符"),
+    BUILDING_FILE_NOT_FOUND("BUILDING_002", "建筑文件 '%s' 不存在",
+            "请先传入 blueprint_json 进行保存，或用 get_building_list 查看已有建筑文件"),
+    BUILDING_FILE_ALREADY_EXISTS("BUILDING_003", "建筑文件 '%s' 已存在且 overwrite=false",
+            "如需覆盖已有建筑文件，请显式传入 overwrite=true"),
+    BUILDING_FILE_IO_ERROR("BUILDING_004", "建筑文件操作失败: %s",
+            "请检查 config/bbsmcp/buildings 目录是否可访问，或确认文件未被其他进程占用");
 
     // ─────────────────────────────────────────────────────────────────────────
 

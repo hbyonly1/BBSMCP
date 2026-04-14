@@ -10,6 +10,9 @@ import theblocklab.bbsmcp.building.BuildingClientNetwork;
 import theblocklab.bbsmcp.building.BuildingClientRenderer;
 import theblocklab.bbsmcp.dev.DevEnvironmentSetup;
 import theblocklab.bbsmcp.network.ClientNetwork;
+import theblocklab.bbsmcp.region.RegionClientEvent;
+import theblocklab.bbsmcp.region.RegionClientNetwork;
+import theblocklab.bbsmcp.region.RegionClientRenderer;
 import theblocklab.bbsmcp.utils.CaptureHelper;
 
 public class BBSMCPClient implements ClientModInitializer {
@@ -27,6 +30,11 @@ public class BBSMCPClient implements ClientModInitializer {
 		BuildingClientNetwork.setup();
 		BuildingClientRenderer.register();
 		BuildingClientEvent.register();
+
+		// 注册区域编辑系统客户端
+		RegionClientNetwork.setup();
+		RegionClientRenderer.register();
+		RegionClientEvent.register();
 
 		// 注册截图助手
 		ClientTickEvents.END_CLIENT_TICK.register(CaptureHelper::onClientTick);

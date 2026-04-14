@@ -4,12 +4,19 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.state.property.Property;
+import net.minecraft.registry.Registries;
+import net.minecraft.util.BlockRotation;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 建筑蓝图数据模型。
@@ -27,6 +34,10 @@ import java.util.Map;
  * </pre>
  *
  * <p>block_id 规则：不含 ':' 时自动追加 'minecraft:' 前缀。
+ * 支持附带 BlockState，例如：
+ * <pre>
+ *   oak_stairs[facing=north,half=bottom,shape=straight]
+ * </pre>
  */
 public class BuildingBlueprint {
 
@@ -45,10 +56,10 @@ public class BuildingBlueprint {
 
     // 内部存储：相对偏移
     private final List<int[]> blocks  = new ArrayList<>();   // [dx,dy,dz]
-    private final List<String> blockIds = new ArrayList<>();
+    private final List<String> blockSpecs = new ArrayList<>();
 
     private final List<int[]> fills   = new ArrayList<>();   // [x1,y1,z1,x2,y2,z2]
-    private final List<String> fillIds = new ArrayList<>();
+    private final List<String> fillSpecs = new ArrayList<>();
 
     private final List<int[]> anchorOffsets = new ArrayList<>();  // [dx,dy,dz]
     private final List<String> anchorNames  = new ArrayList<>();
@@ -67,7 +78,7 @@ public class BuildingBlueprint {
             for (JsonElement elem : root.getAsJsonArray("blocks")) {
                 JsonArray arr = elem.getAsJsonArray();
                 blocks.add(new int[]{arr.get(0).getAsInt(), arr.get(1).getAsInt(), arr.get(2).getAsInt()});
-                blockIds.add(normalizeBlockId(arr.get(3).getAsString()));
+                blockSpecs.add(normalizeBlockSpec(arr.get(3).getAsString()));
             }
         }
 
@@ -79,7 +90,7 @@ public class BuildingBlueprint {
                     arr.get(0).getAsInt(), arr.get(1).getAsInt(), arr.get(2).getAsInt(),
                     arr.get(3).getAsInt(), arr.get(4).getAsInt(), arr.get(5).getAsInt()
                 });
-                fillIds.add(normalizeBlockId(arr.get(6).getAsString()));
+                fillSpecs.add(normalizeBlockSpec(arr.get(6).getAsString()));
             }
         }
 
@@ -166,7 +177,7 @@ public class BuildingBlueprint {
             int x1 = Math.min(r[0], r[3]), x2 = Math.max(r[0], r[3]);
             int y1 = Math.min(r[1], r[4]), y2 = Math.max(r[1], r[4]);
             int z1 = Math.min(r[2], r[5]), z2 = Math.max(r[2], r[5]);
-            String id = fillIds.get(i);
+            String id = fillSpecs.get(i);
             for (int x = x1; x <= x2; x++) {
                 for (int y = y1; y <= y2; y++) {
                     for (int z = z1; z <= z2; z++) {
@@ -179,7 +190,7 @@ public class BuildingBlueprint {
         // 再处理单块（覆盖 fills）
         for (int i = 0; i < blocks.size(); i++) {
             int[] b = blocks.get(i);
-            map.put(transform(b[0], b[1], b[2], origin, rotation), blockIds.get(i));
+            map.put(transform(b[0], b[1], b[2], origin, rotation), blockSpecs.get(i));
         }
 
         List<PlacedBlock> result = new ArrayList<>(map.size());
@@ -205,15 +216,91 @@ public class BuildingBlueprint {
 
     // ── 工具方法 ────────────────────────────────────────────────
 
-    /** 若 id 不含 ':' 则自动添加 'minecraft:' 前缀 */
+    /** 若 id 不含 ':' 则自动添加 'minecraft:' 前缀，并保留可选的 BlockState 后缀 */
+    public static String normalizeBlockSpec(String spec) {
+        int stateIndex = spec.indexOf('[');
+        String blockId = stateIndex >= 0 ? spec.substring(0, stateIndex) : spec;
+        String stateSuffix = stateIndex >= 0 ? spec.substring(stateIndex) : "";
+        String normalizedId = blockId.contains(":") ? blockId : "minecraft:" + blockId;
+        return normalizedId + stateSuffix;
+    }
+
+    /** 兼容旧调用：仅归一化基础方块 ID，不处理属性语义。 */
     public static String normalizeBlockId(String id) {
-        return id.contains(":") ? id : "minecraft:" + id;
+        return normalizeBlockSpec(id);
+    }
+
+    /** 解析带可选 BlockState 的方块描述；失败时回退到默认状态。 */
+    public static BlockState parseBlockState(String spec) {
+        String normalized = normalizeBlockSpec(spec);
+        int stateIndex = normalized.indexOf('[');
+        String blockId = stateIndex >= 0 ? normalized.substring(0, stateIndex) : normalized;
+        boolean hasStateSuffix = stateIndex >= 0 && normalized.endsWith("]");
+        String stateBody = hasStateSuffix ? normalized.substring(stateIndex + 1, normalized.length() - 1) : "";
+
+        Identifier id = Identifier.tryParse(blockId);
+        if (id == null) {
+            return null;
+        }
+
+        Block block = Registries.BLOCK.get(id);
+        if (block == null) {
+            return null;
+        }
+
+        BlockState state = block.getDefaultState();
+        if (stateBody.isBlank()) {
+            return state;
+        }
+
+        for (String entry : stateBody.split(",")) {
+            String[] pair = entry.split("=", 2);
+            if (pair.length != 2) {
+                continue;
+            }
+
+            String propertyName = pair[0].trim();
+            String rawValue = pair[1].trim();
+            Property<?> property = block.getStateManager().getProperty(propertyName);
+            if (property == null) {
+                continue;
+            }
+
+            state = applyProperty(state, property, rawValue);
+        }
+
+        return state;
+    }
+
+    /**
+     * 在解析 BlockState 后按建筑旋转同步旋转方块状态，
+     * 用于修正楼梯、门、按钮等带朝向方块的 facing/shape 等属性。
+     */
+    public static BlockState parseRotatedBlockState(String spec, int rotation) {
+        BlockState state = parseBlockState(spec);
+        if (state == null) {
+            return null;
+        }
+
+        BlockRotation blockRotation = switch (rotation) {
+            case 1 -> BlockRotation.CLOCKWISE_90;
+            case 2 -> BlockRotation.CLOCKWISE_180;
+            case 3 -> BlockRotation.COUNTERCLOCKWISE_90;
+            default -> BlockRotation.NONE;
+        };
+
+        return state.rotate(blockRotation);
+    }
+
+    private static <T extends Comparable<T>> BlockState applyProperty(BlockState state, Property<T> property, String rawValue) {
+        Optional<T> parsed = property.parse(rawValue);
+        return parsed.map(value -> state.with(property, value)).orElse(state);
     }
 
     // ── 内部数据类 ───────────────────────────────────────────────
     // 数据载体类
-    /** 单个已确定坐标和方块 ID 的放置项 */
-    public record PlacedBlock(BlockPos pos, String blockId) {}
+    /** 单个已确定坐标和方块描述（含可选 BlockState）的放置项 */
+    public record PlacedBlock(BlockPos pos, String blockSpec) {}
 
     /** 单个内嵌 Anchor 放置信息 */
     public record AnchorPlacement(BlockPos pos, String name, String desc) {}

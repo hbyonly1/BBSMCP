@@ -3,11 +3,9 @@ package theblocklab.bbsmcp.building;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import theblocklab.bbsmcp.anchor.AnchorManager;
@@ -53,13 +51,11 @@ public class BuildingServerHandler {
             int failed = 0;
 
             for (var pb : placedBlocks) {
-                Identifier blockId = Identifier.tryParse(pb.blockId());
-                if (blockId == null) {
+                BlockState state = BuildingBlueprint.parseRotatedBlockState(pb.blockSpec(), rotation);
+                if (state == null) {
                     failed++;
                     continue;
                 }
-                Block block = Registries.BLOCK.get(blockId);
-                BlockState state = block.getDefaultState();
                 world.setBlockState(pb.pos(), state, Block.NOTIFY_ALL);
                 placed++;
             }
