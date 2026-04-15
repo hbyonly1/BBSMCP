@@ -59,11 +59,38 @@ public class GetReplaySchemaTool extends MCPTool {
                   "extra2Y":       {"id": "extra2_y",   "valueFormat": "number"}
                 }
               },
-              "interpolations": ["LINEAR", "HERMITE", "STEP"],
+              "interpolations": [
+                "linear", "constant", "step",
+                "sine_in", "sine_out", "sine_inout",
+                "circle_in", "circle_out", "circle_inout",
+                "quad_in", "quad_out", "quad_inout",
+                "cubic_in", "cubic_out", "cubic_inout",
+                "quart_in", "quart_out", "quart_inout",
+                "quint_in", "quint_out", "quint_inout",
+                "exp_in", "exp_out", "exp_inout",
+                "back_in", "back_out", "back_inout",
+                "elastic_in", "elastic_out", "elastic_inout",
+                "bounce_in", "bounce_out", "bounce_inout",
+                "cubic", "hermite", "bezier"
+              ],
+              "form_properties": {
+                "description": "Replay 还有第二套独立动画系统 FormProperties，通过 get_form_properties 工具查询。绑定 ModelForm/MobForm 时有 pose/pose_overlay 通道",
+                "channels": {
+                  "pose":         {"valueFormat": "pose_json", "description": "骨骼姿势，控制各骨骼的 translate/scale/rotate"},
+                  "pose_overlay": {"valueFormat": "pose_json", "description": "叠加在 pose 之上的额外骨骼偏移"}
+                },
+                "pose_json_format": {
+                  "description": "pose value 是嵌套 JSON，key=骨骼名(如 body/head/arm_right/arm_left/leg_right/leg_left 等)，value=Transform",
+                  "fields": {"t": "translate [x,y,z]", "s": "scale [x,y,z]", "r": "rotate [x,y,z](弧度)", "r2": "第二次旋转 [x,y,z](弧度)"},
+                  "example": "{\"pose\":{\"body\":{\"t\":[0,0,0],\"s\":[1,1,1],\"r\":[0.5,0,0]},\"head\":{\"r\":[-0.3,0,0]}}}"
+                }
+              },
               "notes": [
                 "通道 ID 与 Java 字段名不完全一致，例如 mainHand 字段的通道 ID 是 item_main_hand",
                 "物品通道的 value 示例: {id:'minecraft:diamond_sword',Count:1}",
-                "fp 与 actor 属性通过 set_replay_prop 设置，不属于关键帧通道"
+                "fp 与 actor 属性通过 set_replay_prop 设置，不属于关键帧通道",
+                "pose 等骨骼动画通道在 replay.properties 中，须用 get_form_properties 工具查询",
+                "interpolation 现在返回可读字符串 key，如 linear / hermite / bezier"
               ]
             }
             """;

@@ -46,6 +46,12 @@ public enum BBSMCPError {
             "请用 get_replays 确认当前 Replay 列表后再操作"),
     REPLAY_CHANNEL_NOT_FOUND("REPLAY_002", "关键帧通道 '%s' 不存在于 Replay 的 ReplayKeyframes 中",
             "请先调用 get_replay_schema 获取所有合法通道 ID，注意通道 ID 与 Java 字段名不完全一致"),
+    REPLAY_FORM_NOT_SET("REPLAY_003", "Replay[%d] 尚未设置 Form，无法操作 FormProperties",
+            "请先用 set_replay_form 或 set_replay_form(mobId/formJson) 为该 Replay 设置外观"),
+    REPLAY_FORM_PROPERTY_NOT_FOUND("REPLAY_004", "FormProperties 通道 '%s' 不存在于 Replay[%d]",
+            "请先用 add_form_keyframe / batch_add_form_keyframes 创建该通道，或用 get_form_properties 查看已有通道"),
+    REPLAY_INTERPOLATION_NOT_FOUND("REPLAY_005", "未知插值类型 '%s'",
+            "请使用 get_replay_schema 查看支持的 interpolation 列表，例如 linear、sine_inout、hermite、bezier"),
 
     // ── Anchor 相关 ──────────────────────────────────────────────────────────
     ANCHOR_NOT_FOUND("ANCHOR_001", "锚点 ID %d 不存在",

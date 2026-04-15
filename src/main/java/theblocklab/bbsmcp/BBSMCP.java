@@ -65,7 +65,7 @@ public class BBSMCP implements ModInitializer {
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new ClipManagerMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new UIMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new ReplayMCPTools());
-			MCPServerImpl.INSTANCE.getRouter().registerProvider(new TestMCPTools());
+			//MCPServerImpl.INSTANCE.getRouter().registerProvider(new TestMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new AnchorMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new BuildingMCPTools());
 			MCPServerImpl.INSTANCE.getRouter().registerProvider(new RegionMCPTools());

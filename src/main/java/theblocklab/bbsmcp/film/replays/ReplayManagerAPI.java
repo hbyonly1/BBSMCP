@@ -1,19 +1,31 @@
 package theblocklab.bbsmcp.film.replays;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import mchorse.bbs_mod.data.DataParser;
 import mchorse.bbs_mod.data.types.BaseType;
+import mchorse.bbs_mod.data.types.MapType;
 import mchorse.bbs_mod.film.Film;
+import mchorse.bbs_mod.film.replays.FormProperties;
 import mchorse.bbs_mod.film.replays.Replay;
 import mchorse.bbs_mod.forms.FormUtils;
+import mchorse.bbs_mod.forms.forms.Form;
 import mchorse.bbs_mod.forms.forms.MobForm;
+import mchorse.bbs_mod.forms.forms.ModelForm;
+import mchorse.bbs_mod.utils.interps.IInterp;
+import mchorse.bbs_mod.utils.interps.Interpolation;
+import mchorse.bbs_mod.utils.interps.Interpolations;
 import mchorse.bbs_mod.utils.keyframes.Keyframe;
 import mchorse.bbs_mod.utils.keyframes.KeyframeChannel;
+import mchorse.bbs_mod.utils.pose.Pose;
+import mchorse.bbs_mod.utils.pose.PoseTransform;
 import net.minecraft.server.network.ServerPlayerEntity;
 import theblocklab.bbsmcp.exception.BBSMCPError;
 import theblocklab.bbsmcp.exception.BBSMCPException;
@@ -52,6 +64,29 @@ public class ReplayManagerAPI {
 
     private static List<KeyframeChannel<?>> getChannels(Replay replay) {
         return replay.keyframes.getChannels();
+    }
+
+    private static Form getReplayForm(Replay replay, int index) {
+        Form form = replay.form.get();
+        if (form == null) {
+            throw new BBSMCPException(BBSMCPError.REPLAY_FORM_NOT_SET, index);
+        }
+        return form;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static KeyframeChannel<Object> getOrCreateFormPropertyChannel(Replay replay, int index, String channelId) {
+        Form form = getReplayForm(replay, index);
+        return (KeyframeChannel<Object>) replay.properties.getOrCreate(form, channelId);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static KeyframeChannel<Object> getExistingFormPropertyChannel(Replay replay, int index, String channelId) {
+        KeyframeChannel<?> channel = replay.properties.properties.get(channelId);
+        if (channel == null) {
+            throw new BBSMCPException(BBSMCPError.REPLAY_FORM_PROPERTY_NOT_FOUND, channelId, index);
+        }
+        return (KeyframeChannel<Object>) channel;
     }
 
     // ────────────── 查询 ──────────────
@@ -108,20 +143,41 @@ public class ReplayManagerAPI {
         JsonObject result = new JsonObject();
         for (String channelId : targetChannels) {
             KeyframeChannel<?> channel = getChannel(replay, channelId);
-            JsonArray frames = new JsonArray();
-            for (var kf : channel.getKeyframes()) {
-                float tick = kf.getTick();
-                if (fromTick >= 0 && tick < fromTick)
-                    continue;
-                if (toTick >= 0 && tick > toTick)
-                    continue;
-                JsonObject fo = new JsonObject();
-                fo.addProperty("tick", tick);
-                fo.addProperty("value", kf.getValue() == null ? "null" : kf.getValue().toString());
-                fo.addProperty("interpolation", kf.getInterpolation().toString());
-                frames.add(fo);
-            }
-            result.add(channelId, frames);
+            result.add(channelId, buildFrameArray(channel, fromTick, toTick));
+        }
+        return JsonFormatUtils.pretty(result.toString());
+    }
+
+    /**
+     * 查询 Replay 的 FormProperties（Form 属性动画通道），例如 pose、pose_overlay、lighting 等。
+     * 这些通道与 getKeyframes 查询的 ReplayKeyframes 是两套独立的数据。
+     *
+     * @param filmId   Film ID
+     * @param index    Replay 索引
+     * @param channels 要查询的通道 ID 列表（null 或空则返回全部通道）
+     * @param fromTick 起始 tick（-1 表示不限制）
+     * @param toTick   结束 tick（-1 表示不限制）
+     */
+    public static String getFormProperties(String filmId, int index,
+            List<String> channels, float fromTick, float toTick) {
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
+        Replay replay = getReplay(film, filmId, index);
+        FormProperties fp = replay.properties;
+        Map<String, KeyframeChannel> allProps = fp.properties;
+
+        List<String> targetChannels;
+        if (channels == null || channels.isEmpty()) {
+            targetChannels = new ArrayList<>(allProps.keySet());
+        } else {
+            targetChannels = channels;
+        }
+
+        JsonObject result = new JsonObject();
+        Set<String> modelBones = getAllModelBones(replay);
+        for (String channelId : targetChannels) {
+            KeyframeChannel<?> channel = allProps.get(channelId);
+            if (channel == null) continue;
+            result.add(channelId, buildFrameArray(channel, fromTick, toTick, modelBones));
         }
         return JsonFormatUtils.pretty(result.toString());
     }
@@ -260,6 +316,91 @@ public class ReplayManagerAPI {
     }
 
     /**
+     * 向 FormProperties 指定通道插入或覆盖单个关键帧，并支持设置插值。
+     */
+    public static void addFormKeyframe(ServerPlayerEntity player, String filmId, int replayIndex,
+            String channelId, float tick, String value, String interpolation, List<Double> interpArgs) {
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
+        Replay replay = getReplay(film, filmId, replayIndex);
+        KeyframeChannel<Object> channel = getOrCreateFormPropertyChannel(replay, replayIndex, channelId);
+
+        int index = channel.insert(tick, parseValue(channel, value));
+        applyInterpolation(channel.get(index), interpolation, interpArgs);
+
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
+    }
+
+    /**
+     * 批量写入 FormProperties 通道关键帧。
+     * 每帧可单独带 interpolation / interpArgs；若未提供则使用 defaultInterpolation。
+     */
+    public static void batchAddFormKeyframes(ServerPlayerEntity player, String filmId, int replayIndex,
+            JsonObject channelFrames, String defaultInterpolation) {
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
+        Replay replay = getReplay(film, filmId, replayIndex);
+
+        for (String channelId : channelFrames.keySet()) {
+            KeyframeChannel<Object> channel = getOrCreateFormPropertyChannel(replay, replayIndex, channelId);
+            JsonArray frames = channelFrames.getAsJsonArray(channelId);
+            for (var elem : frames) {
+                JsonObject fo = elem.getAsJsonObject();
+                float tick = fo.get("tick").getAsFloat();
+                String value = fo.get("value").getAsString();
+                String interpolation = fo.has("interpolation") ? fo.get("interpolation").getAsString() : defaultInterpolation;
+                List<Double> interpArgs = fo.has("interpArgs") ? parseInterpArgs(fo.getAsJsonArray("interpArgs")) : null;
+
+                int insertedIndex = channel.insert(tick, parseValue(channel, value));
+                applyInterpolation(channel.get(insertedIndex), interpolation, interpArgs);
+            }
+        }
+
+        replay.properties.cleanUp();
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
+    }
+
+    /**
+     * 删除 FormProperties 中指定通道在时间区间内的关键帧。
+     */
+    public static void removeFormKeyframes(ServerPlayerEntity player, String filmId, int replayIndex,
+            List<String> channels, float fromTick, float toTick, float exactTick) {
+        Film film = FilmManagerAPI.INSTANCE.getFilm(filmId);
+        Replay replay = getReplay(film, filmId, replayIndex);
+
+        List<KeyframeChannel<Object>> targets = new ArrayList<>();
+        if (channels == null || channels.isEmpty()) {
+            for (KeyframeChannel<?> channel : replay.properties.properties.values()) {
+                targets.add((KeyframeChannel<Object>) channel);
+            }
+        } else {
+            for (String id : channels) {
+                targets.add(getExistingFormPropertyChannel(replay, replayIndex, id));
+            }
+        }
+
+        for (KeyframeChannel<Object> channel : targets) {
+            List<?> list = channel.getKeyframes();
+            for (int i = list.size() - 1; i >= 0; i--) {
+                Keyframe<?> kf = (Keyframe<?>) list.get(i);
+                float t = kf.getTick();
+                boolean shouldRemove;
+                if (exactTick >= 0) {
+                    shouldRemove = (t == exactTick);
+                } else {
+                    boolean afterFrom = fromTick < 0 || t >= fromTick;
+                    boolean beforeTo = toTick < 0 || t <= toTick;
+                    shouldRemove = afterFrom && beforeTo;
+                }
+                if (shouldRemove) {
+                    channel.remove(i);
+                }
+            }
+        }
+
+        replay.properties.cleanUp();
+        FilmManagerAPI.pushFilmS2C(player, filmId, film);
+    }
+
+    /**
      * 删除指定通道在时间区间内的关键帧
      *
      * @param channels  null 表示操作全部通道
@@ -361,6 +502,125 @@ public class ReplayManagerAPI {
 
     // ────────────── 私有辅助 ──────────────
 
+    /**
+     * 将 KeyframeChannel 中符合 tick 区间的帧序列化为 JsonArray。
+     * 统一处理 interpolation（输出可读 key 字符串）和 value（toString 或 factory 序列化）。
+     */
+    @SuppressWarnings("unchecked")
+    private static JsonArray buildFrameArray(KeyframeChannel<?> channel, float fromTick, float toTick) {
+        return buildFrameArray(channel, fromTick, toTick, Set.of());
+    }
+
+    /**
+     * modelBones 只影响 Pose 类型通道的输出补全，不会写回 Replay/Film 数据。
+     */
+    @SuppressWarnings("unchecked")
+    private static JsonArray buildFrameArray(KeyframeChannel<?> channel, float fromTick, float toTick,
+            Set<String> modelBones) {
+        JsonArray frames = new JsonArray();
+        for (var kf : channel.getKeyframes()) {
+            float tick = kf.getTick();
+            if (fromTick >= 0 && tick < fromTick) continue;
+            if (toTick >= 0 && tick > toTick) continue;
+
+            JsonObject fo = new JsonObject();
+            fo.addProperty("tick", tick);
+
+            // 序列化 value：包含完善的空值保护
+            Object val = kf.getValue();
+            if (val == null) {
+                fo.addProperty("value", "null");
+            } else {
+                var factory = (mchorse.bbs_mod.utils.keyframes.factories.IKeyframeFactory) channel.getFactory();
+                if (factory != null) {
+                    try {
+                        BaseType data = factory.toData(val);
+                        if (val instanceof Pose && data != null && data.isMap()) {
+                            addModelBonesToPoseData(data.asMap(), modelBones);
+                        }
+                        fo.addProperty("value", data != null ? data.toString() : val.toString());
+                    } catch (Exception e) {
+                        fo.addProperty("value", val.toString());
+                    }
+                } else {
+                    fo.addProperty("value", val.toString());
+                }
+            }
+
+            // 序列化 interpolation：输出可读字符串 key，如 "linear"、"hermite"
+            Interpolation interp = kf.getInterpolation();
+            fo.addProperty("interpolation", interp.getInterp().getKey());
+            // 若有附加参数（step 步数、bezier 控制点等），一并输出
+            double v1 = interp.getV1(), v2 = interp.getV2(), v3 = interp.getV3(), v4 = interp.getV4();
+            if (v1 != 0 || v2 != 0 || v3 != 0 || v4 != 0) {
+                JsonArray args = new JsonArray();
+                args.add(v1); args.add(v2); args.add(v3); args.add(v4);
+                fo.add("interpArgs", args);
+            }
+
+            frames.add(fo);
+        }
+        return frames;
+    }
+
+    private static Set<String> getAllModelBones(Replay replay) {
+        Set<String> bones = new LinkedHashSet<>();
+        Form form = replay.form.get();
+
+        if (!(form instanceof ModelForm modelForm)) {
+            return bones;
+        }
+
+        String modelId = (String) modelForm.model.get();
+        if (modelId == null || modelId.isBlank()) {
+            return bones;
+        }
+
+        try {
+            Class<?> clientClass = Class.forName("mchorse.bbs_mod.BBSModClient");
+            Object modelManager = clientClass.getMethod("getModels").invoke(null);
+            Object instance = modelManager.getClass()
+                    .getMethod("getModel", String.class)
+                    .invoke(modelManager, modelId);
+
+            if (instance != null) {
+                Object model = instance.getClass().getField("model").get(instance);
+                if (model != null) {
+                    Object keys = model.getClass().getMethod("getAllGroupKeys").invoke(model);
+                    if (keys instanceof Iterable<?> iterable) {
+                        for (Object key : iterable) {
+                            if (key != null) {
+                                bones.add(key.toString());
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // Client model manager may be unavailable on non-client environments.
+        }
+
+        return bones;
+    }
+
+    private static void addModelBonesToPoseData(MapType data, Set<String> modelBones) {
+        if (modelBones == null || modelBones.isEmpty()) {
+            return;
+        }
+
+        MapType poseMap = data.getMap("pose");
+        for (String key : modelBones) {
+            if (key == null || key.isBlank() || poseMap.has(key)) {
+                continue;
+            }
+
+            PoseTransform transform = new PoseTransform();
+            MapType transformData = new MapType();
+            transform.toData(transformData);
+            poseMap.put(key, transformData);
+        }
+    }
+
     /** 构造 Replay 的元信息 JsonObject（不含关键帧详细内容） */
     // 有意为之的轻量化设计，没有选择 toData()
     private static JsonObject buildReplayMeta(Replay replay, int index) {
@@ -393,13 +653,52 @@ public class ReplayManagerAPI {
             // 尝试解析为数字（绝大多数通道）
             return (T) Double.valueOf(value);
         } catch (NumberFormatException e) {
-            // 尝试解析为 JSON/NBT 结构 (例如物品、颜色等)
+            // 对复杂类型（例如 item、pose）优先交给通道自身的 factory 反序列化
             BaseType parsed = DataParser.parse(value);
+            var factory = (mchorse.bbs_mod.utils.keyframes.factories.IKeyframeFactory<T>) channel.getFactory();
+            if (parsed != null && factory != null) {
+                try {
+                    return factory.fromData(parsed);
+                } catch (Exception ignored) {
+                    // 回退到下面的原始 parsed / 字符串逻辑
+                }
+            }
             if (parsed != null) {
                 return (T) parsed;
             }
             // 实在不行返回原始字符串
             return (T) value;
         }
+    }
+
+    private static void applyInterpolation(Keyframe<?> keyframe, String interpolation, List<Double> interpArgs) {
+        String key = interpolation == null || interpolation.isBlank() ? "linear" : interpolation.trim().toLowerCase();
+        IInterp interp = Interpolations.get(key);
+        if (interp == null) {
+            throw new BBSMCPException(BBSMCPError.REPLAY_INTERPOLATION_NOT_FOUND, interpolation);
+        }
+
+        Interpolation holder = keyframe.getInterpolation();
+        holder.setInterp(interp);
+
+        double[] args = new double[] {0, 0, 0, 0};
+        if (interpArgs != null) {
+            for (int i = 0; i < Math.min(4, interpArgs.size()); i++) {
+                args[i] = interpArgs.get(i);
+            }
+        }
+
+        holder.setV1(args[0]);
+        holder.setV2(args[1]);
+        holder.setV3(args[2]);
+        holder.setV4(args[3]);
+    }
+
+    private static List<Double> parseInterpArgs(JsonArray array) {
+        List<Double> values = new ArrayList<>();
+        for (var item : array) {
+            values.add(item.getAsDouble());
+        }
+        return values;
     }
 }
